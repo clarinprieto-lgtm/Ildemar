@@ -251,9 +251,9 @@
                 </select>
                 <div id="configOffsetManual" class="hidden" style="margin-top:6px;">
                     <label>Distancia (Millas Náuticas):</label>
-                    <input type="number" id="offsetDist" step="0.01" value="0.1">
+                    <input type="number" id="offsetDist" step="0.01" value="0.1" oninput="actualizarDibujo()">
                     <label style="margin-top:4px;">Ángulo relativo (°):</label>
-                    <input type="number" id="offsetAng" value="90">
+                    <input type="number" id="offsetAng" value="90" oninput="actualizarDibujo()">
                 </div>
             </div>
 
@@ -317,7 +317,7 @@
 
     <!-- 4. DIAGRAMA GRÁFICO Y EXPORTACIÓN -->
     <div class="card">
-        <div class="card-title">4. Campo proporcional y descargas</div>
+        <div class="card-title">4. Campo esquemático y descargas</div>
         <div class="canvas-container">
             <canvas id="canvasCampo"></canvas>
         </div>
@@ -547,45 +547,42 @@
 
             if (tipo === 'costera') {
                 if (document.getElementById('checkCosteraOffset').checked) {
-                    let cDist = parseFloat(document.getElementById('costeraOffsetDist').value);
-                    let cRumbo = parseFloat(document.getElementById('costeraOffsetRumbo').value);
-                    if (!isNaN(cDist) && !isNaN(cRumbo)) {
-                        // El desmarque en costera se dibuja saliendo desde el Comité
-                        let desmX = comiteX + 30;
-                        let desmY = comiteY - 60;
-                        dibujarPunto(desmX, desmY, '#22C55E', 'Desmarque', 'arriba');
-                    }
+                    let desmX = comiteX + 30;
+                    let desmY = comiteY - 60;
+                    dibujarPunto(desmX, desmY, '#22C55E', 'Desmarque', 'arriba');
                 }
 
                 waypointsCosteros.forEach((wp, index) => {
-                    let latVal = parseFloat(wp.lat);
-                    let lonVal = parseFloat(wp.lon);
-                    
-                    let wpX, wpY;
-                    if (!isNaN(latVal) && !isNaN(lonVal)) {
-                        // Posición relativa calculada o distribuida para que no desaparezca del canvas
-                        wpX = w * (0.2 + (index * 0.2) % 0.7);
-                        wpY = h * (0.15 + (index * 0.12) % 0.5);
-                    } else {
-                        wpX = w * (0.3 + (index * 0.25) % 0.6);
-                        wpY = h * (0.25 + (index * 0.15));
-                    }
-
+                    let wpX = w * (0.2 + (index * 0.2) % 0.7);
+                    let wpY = h * (0.15 + (index * 0.12) % 0.5);
                     dibujarPunto(wpX, wpY, colorNaranja, wp.nombre || `WP ${index+1}`, 'arriba');
                 });
                 return;
             }
 
-            const distBarloVal = parseFloat(document.getElementById('distanciaBarlo').value) || 1.0;
-            let radioPx = Math.min(w, h) * 0.35;
-
             if (tipo === 'bastones') {
                 const hayOffset = document.getElementById('checkOffset').checked;
                 let barloX = centroSalX;
                 let barloY = h * 0.25;
+
+                // Línea central del bastón
+                ctx.beginPath();
+                ctx.moveTo(centroSalX, centroSalY);
+                ctx.lineTo(barloX, barloY);
+                ctx.strokeStyle = '#CBD5E1';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
                 
                 if (hayOffset) {
-                    dibujarPunto(barloX - 35, barloY, colorNaranja, 'Offset (1a)', 'arriba-izq');
+                    const modoOffset = document.getElementById('modoOffset').value;
+                    let anguloRel = modoOffset === 'manual' ? parseFloat(document.getElementById('offsetAng').value) || 90 : 90;
+                    
+                    // Si el ángulo es próximo a -90 o 90, se dibuja en horizontal respecto a la baliza 1
+                    let offsetDistPx = 35;
+                    let offsetX = barloX + (anguloRel < 0 ? -offsetDistPx : offsetDistPx);
+                    let offsetY = barloY;
+
+                    dibujarPunto(offsetX, offsetY, colorNaranja, 'Offset (1a)', anguloRel < 0 ? 'arriba-izq' : 'arriba-der');
                 }
 
                 dibujarPunto(barloX, barloY, colorNaranja, 'Baliza 1', hayOffset ? 'arriba-der' : 'arriba');
@@ -595,15 +592,11 @@
                     dibujarPunto(centroSalX + 35, centroSalY - 15, '#22C55E', 'Puerta 2p', 'abajo');
                 }
             } else if (tipo === 'triangulo') {
-                // Triángulo equilátero fijo no proporcional: Baliza 1 arriba, Baliza 2 a la izquierda
                 let barloX = centroSalX;
                 let barloY = h * 0.20;
-                
-                // Baliza 2 situada a la izquierda formando el triángulo equilátero con el centro de salida y Baliza 1
                 let reachX = centroSalX - (comiteX - pinX) * 1.2;
                 let reachY = h * 0.52;
 
-                // Dibujar líneas del triángulo
                 ctx.beginPath();
                 ctx.moveTo(centroSalX, centroSalY);
                 ctx.lineTo(barloX, barloY);
@@ -663,7 +656,6 @@
                     let cDist = parseFloat(document.getElementById('costeraOffsetDist').value);
                     let cRumbo = parseFloat(document.getElementById('costeraOffsetRumbo').value);
                     if (!isNaN(cDist) && !isNaN(cRumbo)) {
-                        // Desmarque calculado estrictamente sobre el barco Comité
                         let refLat = puntosGPS && puntosGPS.comite ? puntosGPS.comite.lat : 39.4;
                         let refLon = puntosGPS && puntosGPS.comite ? puntosGPS.comite.lon : -0.3;
                         const offCostera = calcularCoordenadaDestino(refLat, refLon, cDist, cRumbo);
@@ -688,7 +680,6 @@
                 const distancia = parseFloat(document.getElementById('distanciaBarlo').value);
                 if (isNaN(ejeViento) || isNaN(distancia)) return null;
 
-                // Baliza 1 y cálculos basados estrictamente sobre el CENTRO de la línea Pin-Comité
                 const centroLat = (puntosGPS.comite.lat + puntosGPS.pin.lat) / 2;
                 const centroLon = (puntosGPS.comite.lon + puntosGPS.pin.lon) / 2;
 
@@ -723,7 +714,6 @@
                 } else if (tipo === 'triangulo') {
                     const barlo = calcularCoordenadaDestino(centroLat, centroLon, distancia, ejeViento);
                     const modoTri = document.getElementById('modoTriangulo').value;
-                    // Triángulo equilátero con Baliza 2 al lado izquierdo (eje del viento + ángulo de apertura hacia babor/izquierda)
                     let anguloReach = modoTri === 'manual' ? (ejeViento + (parseFloat(document.getElementById('triAnguloManual').value) || 120)) : (ejeViento + 120);
                     
                     const reach = calcularCoordenadaDestino(barlo.lat, barlo.lon, distancia, anguloReach);
