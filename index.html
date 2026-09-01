@@ -87,6 +87,7 @@
         .btn-blue { background: var(--blue-dark); color: #FFF; width: 100%; }
         .btn-orange { background: var(--orange-main); color: #FFF; width: 100%; }
         .btn-danger { background: var(--danger); color: #FFF; width: 100%; font-size: 0.75rem; padding: 6px; margin-top: 4px; }
+        .btn-success { background: var(--success); color: #FFF; width: 100%; font-size: 0.85rem; padding: 8px; margin-top: 6px; }
         
         .btn-gpx { background: var(--orange-main); color: #FFF; }
         .btn-csv { background: var(--orange-alt); color: #FFF; }
@@ -132,6 +133,14 @@
             margin-bottom: 8px;
         }
 
+        .waypoint-item {
+            background: #FFF;
+            border: 1px solid var(--border-color);
+            padding: 8px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+        }
+
         .canvas-container {
             position: relative;
             width: 100%;
@@ -171,19 +180,44 @@
         </select>
     </div>
 
-    <!-- 2. REGISTRO GPS DE SALIDA -->
+    <!-- 2. REGISTRO DE SALIDA (COMITÉ Y PIN) PARA TODOS LOS MODOS -->
     <div class="card" id="seccionSalida">
-        <div class="card-title">2. Línea de salida (GPS Real)</div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+        <div class="card-title">2. Línea de salida (Comité y Pin)</div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
             <div>
-                <button class="btn btn-blue" onclick="marcarGPS('comite')">📍 Marcar Comité</button>
+                <button class="btn btn-blue" onclick="marcarGPS('comite')">📍 GPS Comité</button>
                 <div id="comiteInfo" class="coords-info">Sin registrar</div>
                 <button id="btnDelComite" class="btn btn-danger hidden" onclick="eliminarGPS('comite')">Eliminar</button>
             </div>
             <div>
-                <button class="btn btn-blue" onclick="marcarGPS('pin')">📍 Marcar Pin</button>
+                <button class="btn btn-blue" onclick="marcarGPS('pin')">📍 GPS Pin</button>
                 <div id="pinInfo" class="coords-info">Sin registrar</div>
                 <button id="btnDelPin" class="btn btn-danger hidden" onclick="eliminarGPS('pin')">Eliminar</button>
+            </div>
+        </div>
+
+        <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-gray); text-align: center; margin: 6px 0;">O introducir a mano:</div>
+        
+        <!-- Entrada manual Comité -->
+        <div class="sub-config">
+            <label style="font-weight:700; color:var(--blue-dark);">Comité Manual:</label>
+            <div style="display: grid; grid-template-columns: 2fr 1fr 2fr 1fr; gap: 4px; margin-top: 4px;">
+                <input type="number" id="manualComiteLat" step="0.00001" placeholder="Lat" oninput="actualizarManual('comite')">
+                <select id="manualComiteLatHem" onchange="actualizarManual('comite')"><option value="N">N</option><option value="S">S</option></select>
+                <input type="number" id="manualComiteLon" step="0.00001" placeholder="Lon" oninput="actualizarManual('comite')">
+                <select id="manualComiteLonHem" onchange="actualizarManual('comite')"><option value="E">E</option><option value="W">W</option></select>
+            </div>
+        </div>
+
+        <!-- Entrada manual Pin -->
+        <div class="sub-config">
+            <label style="font-weight:700; color:var(--blue-dark);">Pin Manual:</label>
+            <div style="display: grid; grid-template-columns: 2fr 1fr 2fr 1fr; gap: 4px; margin-top: 4px;">
+                <input type="number" id="manualPinLat" step="0.00001" placeholder="Lat" oninput="actualizarManual('pin')">
+                <select id="manualPinLatHem" onchange="actualizarManual('pin')"><option value="N">N</option><option value="S">S</option></select>
+                <input type="number" id="manualPinLon" step="0.00001" placeholder="Lon" oninput="actualizarManual('pin')">
+                <select id="manualPinLonHem" onchange="actualizarManual('pin')"><option value="E">E</option><option value="W">W</option></select>
             </div>
         </div>
     </div>
@@ -195,11 +229,11 @@
         <div id="parametrosGenerales">
             <div class="form-group">
                 <label>Eje del viento (° Grados):</label>
-                <input type="number" id="ejeViento" value="45" oninput="actualizarDibujo()">
+                <input type="number" id="ejeViento" value="" placeholder="Ej. 45" oninput="actualizarDibujo()">
             </div>
             <div class="form-group">
                 <label>Distancia a barlovento (Millas Náuticas):</label>
-                <input type="number" id="distanciaBarlo" step="0.1" value="1.0" oninput="actualizarDibujo()">
+                <input type="number" id="distanciaBarlo" step="0.1" value="" placeholder="Ej. 1.0" oninput="actualizarDibujo()">
             </div>
         </div>
 
@@ -212,7 +246,7 @@
             <div id="bloqueOffset" class="sub-config hidden">
                 <label>¿Cómo deseas calcular el offset?</label>
                 <select id="modoOffset" onchange="toggleOffsetManual()">
-                    <option value="auto">Automático (0.1 NM)</option>
+                    <option value="auto">Automático (0.1 NM y 90°)</option>
                     <option value="manual">Manual (Distancia y ángulo propios)</option>
                 </select>
                 <div id="configOffsetManual" class="hidden" style="margin-top:6px;">
@@ -230,7 +264,7 @@
             <div id="bloquePuertas" class="sub-config hidden">
                 <label>¿Cómo deseas calcular las puertas?</label>
                 <select id="modoPuertas" onchange="togglePuertasManual()">
-                    <option value="auto">Automático (0.2 NM desde la línea)</option>
+                    <option value="auto">Automático (0.2 NM y 50m entre boyas)</option>
                     <option value="manual">Manual (Distancia a línea y ancho)</option>
                 </select>
                 <div id="configPuertasManual" class="hidden" style="margin-top:6px;">
@@ -247,68 +281,39 @@
             <div class="form-group">
                 <label>Geometría del triángulo:</label>
                 <select id="modoTriangulo" onchange="toggleManualTriangulo()">
-                    <option value="auto">Automático (Equilátero 60°)</option>
+                    <option value="auto">Automático (Equilátero 120°)</option>
                     <option value="manual">Manual (Definir ángulo de giro)</option>
                 </select>
             </div>
             <div id="configTriangulo" class="sub-config hidden">
                 <label>Ángulo de apertura del triángulo (°):</label>
-                <input type="number" id="triAnguloManual" value="60">
+                <input type="number" id="triAnguloManual" value="120">
             </div>
         </div>
 
         <!-- COSTERA -->
         <div id="opcionesCostera" class="hidden">
-            <div class="form-group">
-                <label>Nombre de la baliza de destino:</label>
-                <input type="text" id="costeraNombre" value="Waypoint" oninput="actualizarDibujo()">
-            </div>
-            
-            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 8px; margin-bottom: 8px;">
-                <div>
-                    <label>Latitud:</label>
-                    <input type="number" id="costeraLat" step="0.00001" placeholder="" oninput="actualizarDibujo()">
-                </div>
-                <div>
-                    <label>Hemisferio:</label>
-                    <select id="costeraLatHem" onchange="actualizarDibujo()">
-                        <option value="N">N</option>
-                        <option value="S">S</option>
-                    </select>
-                </div>
-            </div>
-
-            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 8px; margin-bottom: 8px;">
-                <div>
-                    <label>Longitud:</label>
-                    <input type="number" id="costeraLon" step="0.00001" placeholder="" oninput="actualizarDibujo()">
-                </div>
-                <div>
-                    <label>Hemisferio:</label>
-                    <select id="costeraLonHem" onchange="actualizarDibujo()">
-                        <option value="E">E</option>
-                        <option value="W">W</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="form-group" style="margin-top: 10px; display: flex; align-items: center; gap: 8px;">
+            <!-- Desmarque primero -->
+            <div class="form-group" style="display: flex; align-items: center; gap: 8px;">
                 <input type="checkbox" id="checkCosteraOffset" style="width: auto;" onchange="toggleCosteraOffset()">
                 <label for="checkCosteraOffset" style="margin-bottom:0; cursor:pointer;">¿Hay baliza de desmarque?</label>
             </div>
             <div id="bloqueCosteraOffset" class="sub-config hidden">
-                <label>¿Cómo deseas calcular el desmarque?</label>
-                <select id="modoCosteraOffset" onchange="toggleCosteraOffsetManual()">
-                    <option value="auto">Automático (0.1 NM)</option>
-                    <option value="manual">Manual (Rumbo y distancia)</option>
-                </select>
-                <div id="configCosteraOffsetManual" class="hidden" style="margin-top:6px;">
+                <label>Rumbo y distancia del desmarque:</label>
+                <div style="margin-top:6px;">
                     <label>Distancia (Millas Náuticas):</label>
-                    <input type="number" id="costeraOffsetDist" step="0.01" value="0.1" oninput="actualizarDibujo()">
+                    <input type="number" id="costeraOffsetDist" step="0.01" value="" placeholder="Vacío" oninput="actualizarDibujo()">
                     <label style="margin-top:4px;">Rumbo (°):</label>
-                    <input type="number" id="costeraOffsetRumbo" value="315" oninput="actualizarDibujo()">
+                    <input type="number" id="costeraOffsetRumbo" value="" placeholder="Vacío" oninput="actualizarDibujo()">
                 </div>
             </div>
+
+            <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 12px 0;">
+
+            <!-- Waypoints múltiples -->
+            <label style="font-weight: 700; color: var(--blue-dark); margin-bottom: 6px;">Waypoints de la ruta costera:</label>
+            <div id="listaWaypointsContainer"></div>
+            <button class="btn btn-success" onclick="agregarWaypointCostero()">+ Añadir Waypoint</button>
         </div>
     </div>
 
@@ -324,6 +329,7 @@
 
     <script>
         let puntosGPS = { comite: null, pin: null };
+        let waypointsCosteros = [];
 
         const canvas = document.getElementById('canvasCampo');
         const ctx = canvas.getContext('2d');
@@ -333,8 +339,18 @@
             canvas.height = canvas.parentElement.clientHeight;
             actualizarDibujo();
         }
-        window.addEventListener('load', ajustarCanvas);
+        window.addEventListener('load', () => {
+            ajustarCanvas();
+            inicializarWaypointCosteroInicial();
+        });
         window.addEventListener('resize', ajustarCanvas);
+
+        function inicializarWaypointCosteroInicial() {
+            if (waypointsCosteros.length === 0) {
+                waypointsCosteros.push({ nombre: 'Waypoint 1', lat: '', lon: '', latHem: 'N', lonHem: 'E' });
+                renderizarWaypointsCosteros();
+            }
+        }
 
         function cambiarTipoRegata() {
             const tipo = document.getElementById('raceType').value;
@@ -381,10 +397,53 @@
             actualizarDibujo();
         }
 
-        function toggleCosteraOffsetManual() {
-            const manual = document.getElementById('modoCosteraOffset').value === 'manual';
-            document.getElementById('configCosteraOffsetManual').classList.toggle('hidden', !manual);
+        function agregarWaypointCostero() {
+            waypointsCosteros.push({ nombre: `Waypoint ${waypointsCosteros.length + 1}`, lat: '', lon: '', latHem: 'N', lonHem: 'E' });
+            renderizarWaypointsCosteros();
             actualizarDibujo();
+        }
+
+        function eliminarWaypointCostero(index) {
+            waypointsCosteros.splice(index, 1);
+            if (waypointsCosteros.length === 0) {
+                inicializarWaypointCosteroInicial();
+            } else {
+                renderizarWaypointsCosteros();
+            }
+            actualizarDibujo();
+        }
+
+        function actualizarDatoWaypoint(index, campo, valor) {
+            waypointsCosteros[index][campo] = valor;
+            actualizarDibujo();
+        }
+
+        function renderizarWaypointsCosteros() {
+            const container = document.getElementById('listaWaypointsContainer');
+            container.innerHTML = '';
+            waypointsCosteros.forEach((wp, index) => {
+                const div = document.createElement('div');
+                div.className = 'waypoint-item';
+                div.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                        <input type="text" value="${wp.nombre}" placeholder="Nombre baliza" oninput="actualizarDatoWaypoint(${index}, 'nombre', this.value)" style="font-weight:bold; width: 75%;">
+                        ${waypointsCosteros.length > 1 ? `<button class="btn btn-danger" style="width:20%; margin:0; padding:6px;" onclick="eliminarWaypointCostero(${index})">Borrar</button>` : ''}
+                    </div>
+                    <div style="display: grid; grid-template-columns: 2fr 1fr 2fr 1fr; gap: 4px;">
+                        <input type="number" step="0.00001" value="${wp.lat}" placeholder="Lat" oninput="actualizarDatoWaypoint(${index}, 'lat', this.value)">
+                        <select onchange="actualizarDatoWaypoint(${index}, 'latHem', this.value)">
+                            <option value="N" ${wp.latHem === 'N' ? 'selected' : ''}>N</option>
+                            <option value="S" ${wp.latHem === 'S' ? 'selected' : ''}>S</option>
+                        </select>
+                        <input type="number" step="0.00001" value="${wp.lon}" placeholder="Lon" oninput="actualizarDatoWaypoint(${index}, 'lon', this.value)">
+                        <select onchange="actualizarDatoWaypoint(${index}, 'lonHem', this.value)">
+                            <option value="E" ${wp.lonHem === 'E' ? 'selected' : ''}>E</option>
+                            <option value="W" ${wp.lonHem === 'W' ? 'selected' : ''}>W</option>
+                        </select>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
         }
 
         function marcarGPS(tipo) {
@@ -404,10 +463,17 @@
                     document.getElementById(tipo + 'Info').innerHTML = 
                         `Lat: ${Math.abs(lat).toFixed(5)}° ${latLetra}<br>Lon: ${Math.abs(lon).toFixed(5)}° ${lonLetra}`;
                     document.getElementById('btnDel' + (tipo === 'comite' ? 'Comite' : 'Pin')).classList.remove('hidden');
+
+                    // Rellenar campos manuales correspondientes para mostrar lectura
+                    document.getElementById('manual' + (tipo === 'comite' ? 'Comite' : 'Pin') + 'Lat').value = Math.abs(lat).toFixed(5);
+                    document.getElementById('manual' + (tipo === 'comite' ? 'Comite' : 'Pin') + 'LatHem').value = latLetra;
+                    document.getElementById('manual' + (tipo === 'comite' ? 'Comite' : 'Pin') + 'Lon').value = Math.abs(lon).toFixed(5);
+                    document.getElementById('manual' + (tipo === 'comite' ? 'Comite' : 'Pin') + 'LonHem').value = lonLetra;
+
                     actualizarDibujo();
                 },
                 (err) => {
-                    alert("No se pudo obtener la posición GPS real. Asegúrate de abrir este archivo desde un servidor local o subirlo a una plataforma web (como CodePen) si el navegador bloquea archivos locales (file:///). (Error: " + err.message + ")");
+                    alert("No se pudo obtener la posición GPS real. (Error: " + err.message + ")");
                 },
                 { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
             );
@@ -417,6 +483,28 @@
             puntosGPS[tipo] = null;
             document.getElementById(tipo + 'Info').innerText = "Sin registrar";
             document.getElementById('btnDel' + (tipo === 'comite' ? 'Comite' : 'Pin')).classList.add('hidden');
+            document.getElementById('manual' + (tipo === 'comite' ? 'Comite' : 'Pin') + 'Lat').value = '';
+            document.getElementById('manual' + (tipo === 'comite' ? 'Comite' : 'Pin') + 'Lon').value = '';
+            actualizarDibujo();
+        }
+
+        function actualizarManual(tipo) {
+            let latVal = parseFloat(document.getElementById('manual' + (tipo === 'comite' ? 'Comite' : 'Pin') + 'Lat').value);
+            let latHem = document.getElementById('manual' + (tipo === 'comite' ? 'Comite' : 'Pin') + 'LatHem').value;
+            let lonVal = parseFloat(document.getElementById('manual' + (tipo === 'comite' ? 'Comite' : 'Pin') + 'Lon').value);
+            let lonHem = document.getElementById('manual' + (tipo === 'comite' ? 'Comite' : 'Pin') + 'LonHem').value;
+
+            if (!isNaN(latVal) && !isNaN(lonVal)) {
+                let finalLat = latHem === 'S' ? -latVal : latVal;
+                let finalLon = lonHem === 'W' ? -lonVal : lonVal;
+                puntosGPS[tipo] = { lat: finalLat, lon: finalLon };
+                document.getElementById(tipo + 'Info').innerHTML = `Lat: ${Math.abs(latVal).toFixed(5)}° ${latHem}<br>Lon: ${Math.abs(lonVal).toFixed(5)}° ${lonHem}`;
+                document.getElementById('btnDel' + (tipo === 'comite' ? 'Comite' : 'Pin')).classList.remove('hidden');
+            } else {
+                puntosGPS[tipo] = null;
+                document.getElementById(tipo + 'Info').innerText = "Sin registrar";
+                document.getElementById('btnDel' + (tipo === 'comite' ? 'Comite' : 'Pin')).classList.add('hidden');
+            }
             actualizarDibujo();
         }
 
@@ -433,20 +521,6 @@
             return { lat: lat2 * 180 / Math.PI, lon: lon2 * 180 / Math.PI };
         }
 
-        function obtenerCoordenadasCostera() {
-            let latVal = parseFloat(document.getElementById('costeraLat').value);
-            let lonVal = parseFloat(document.getElementById('costeraLon').value);
-            const latHem = document.getElementById('costeraLatHem').value;
-            const lonHem = document.getElementById('costeraLonHem').value;
-
-            if (isNaN(latVal) || isNaN(lonVal)) return null;
-
-            if (latHem === 'S') latVal = -latVal;
-            if (lonHem === 'W') lonVal = -lonVal;
-
-            return { lat: latVal, lon: lonVal };
-        }
-
         function actualizarDibujo() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             const w = canvas.width, h = canvas.height;
@@ -455,9 +529,8 @@
             const colorNaranja = '#F97316';
 
             if (tipo === 'costera') {
-                let comiteX = w * 0.65, comiteY = h * 0.8;
-                let pinX = w * 0.35, pinY = h * 0.8;
-                let destinoX = w * 0.5, destinoY = h * 0.25;
+                let comiteX = w * 0.35, comiteY = h * 0.8;
+                let pinX = w * 0.65, pinY = h * 0.8;
 
                 ctx.beginPath();
                 ctx.moveTo(pinX, pinY);
@@ -468,18 +541,18 @@
                 ctx.stroke();
                 ctx.setLineDash([]);
 
-                dibujarPunto(comiteX, comiteY, colorAzulOscuro, 'Comite', 'abajo');
-                dibujarPunto(pinX, pinY, colorNaranja, 'Pin', 'abajo');
-
-                let nombreDestino = document.getElementById('costeraNombre').value || 'Waypoint';
-                dibujarPunto(destinoX, destinoY, colorNaranja, nombreDestino, 'arriba');
+                if (puntosGPS.comite) dibujarPunto(comiteX, comiteY, colorAzulOscuro, 'Comite', 'abajo');
+                if (puntosGPS.pin) dibujarPunto(pinX, pinY, colorNaranja, 'Pin', 'abajo');
 
                 if (document.getElementById('checkCosteraOffset').checked) {
-                    let desmarqueX = pinX - 25;
-                    let desmarqueY = pinY - 80;
-
-                    dibujarPunto(desmarqueX, desmarqueY, '#22C55E', 'Desmarque', 'arriba-izq');
+                    dibujarPunto(pinX - 25, pinY - 70, '#22C55E', 'Desmarque', 'arriba-izq');
                 }
+
+                waypointsCosteros.forEach((wp, index) => {
+                    let posX = w * (0.3 + (index * 0.2) % 0.5);
+                    let posY = h * (0.25 + (index * 0.15));
+                    dibujarPunto(posX, posY, colorNaranja, wp.nombre || `WP ${index+1}`, 'arriba');
+                });
                 return;
             }
 
@@ -505,10 +578,7 @@
                 let barloY = h * 0.25;
                 
                 if (hayOffset) {
-                    let offX = centroX - 35;
-                    let offY = barloY; 
-
-                    dibujarPunto(offX, offY, colorNaranja, 'Offset (1a)', 'arriba-izq');
+                    dibujarPunto(centroX - 35, barloY, colorNaranja, 'Offset (1a)', 'arriba-izq');
                 }
 
                 dibujarPunto(barloX, barloY, colorNaranja, 'Baliza 1', hayOffset ? 'arriba-der' : 'arriba');
@@ -561,47 +631,48 @@
             const tipo = document.getElementById('raceType').value;
             let listaPuntos = [];
 
+            if (puntosGPS.comite && puntosGPS.pin) {
+                listaPuntos.push({ nombre: 'Comite', lat: puntosGPS.comite.lat, lon: puntosGPS.comite.lon });
+                listaPuntos.push({ nombre: 'Pin', lat: puntosGPS.pin.lat, lon: puntosGPS.pin.lon });
+            }
+
             if (tipo === 'costera') {
-                const coords = obtenerCoordenadasCostera();
-                if (!coords) return null;
-                let nombre = document.getElementById('costeraNombre').value || 'Waypoint';
-                
-                if (puntosGPS.comite && puntosGPS.pin) {
-                    listaPuntos.push({ nombre: 'Comite', lat: puntosGPS.comite.lat, lon: puntosGPS.comite.lon });
-                    listaPuntos.push({ nombre: 'Pin', lat: puntosGPS.pin.lat, lon: puntosGPS.pin.lon });
-                }
-
                 if (document.getElementById('checkCosteraOffset').checked) {
-                    const modoCosto = document.getElementById('modoCosteraOffset').value;
-                    let cDist = modoCosto === 'manual' ? (parseFloat(document.getElementById('costeraOffsetDist').value) || 0.1) : 0.1;
-                    let cRumbo = modoCosto === 'manual' ? (parseFloat(document.getElementById('costeraOffsetRumbo').value) || 315) : 315;
-                    
-                    let refLat = puntosGPS && puntosGPS.pin ? puntosGPS.pin.lat : coords.lat - 0.01;
-                    let refLon = puntosGPS && puntosGPS.pin ? puntosGPS.pin.lon : coords.lon - 0.01;
-
-                    const offCostera = calcularCoordenadaDestino(refLat, refLon, cDist, cRumbo);
-                    listaPuntos.push({ nombre: 'Desmarque', lat: offCostera.lat, lon: offCostera.lon });
+                    let cDist = parseFloat(document.getElementById('costeraOffsetDist').value);
+                    let cRumbo = parseFloat(document.getElementById('costeraOffsetRumbo').value);
+                    if (!isNaN(cDist) && !isNaN(cRumbo)) {
+                        let refLat = puntosGPS && puntosGPS.pin ? puntosGPS.pin.lat : 39.4;
+                        let refLon = puntosGPS && puntosGPS.pin ? puntosGPS.pin.lon : -0.3;
+                        const offCostera = calcularCoordenadaDestino(refLat, refLon, cDist, cRumbo);
+                        listaPuntos.push({ nombre: 'Desmarque', lat: offCostera.lat, lon: offCostera.lon });
+                    }
                 }
 
-                listaPuntos.push({ nombre: nombre, lat: coords.lat, lon: coords.lon });
+                waypointsCosteros.forEach(wp => {
+                    let latVal = parseFloat(wp.lat);
+                    let lonVal = parseFloat(wp.lon);
+                    if (!isNaN(latVal) && !isNaN(lonVal)) {
+                        if (wp.latHem === 'S') latVal = -latVal;
+                        if (wp.lonHem === 'W') lonVal = -lonVal;
+                        listaPuntos.push({ nombre: wp.nombre || 'Waypoint', lat: latVal, lon: lonVal });
+                    }
+                });
 
             } else {
                 if (!puntosGPS.comite || !puntosGPS.pin) return null;
 
-                listaPuntos.push({ nombre: 'Comite', lat: puntosGPS.comite.lat, lon: puntosGPS.comite.lon });
-                listaPuntos.push({ nombre: 'Pin', lat: puntosGPS.pin.lat, lon: puntosGPS.pin.lon });
+                const ejeViento = parseFloat(document.getElementById('ejeViento').value);
+                const distancia = parseFloat(document.getElementById('distanciaBarlo').value);
+                if (isNaN(ejeViento) || isNaN(distancia)) return null;
 
-                const ejeViento = parseFloat(document.getElementById('ejeViento').value) || 0;
-                const distancia = parseFloat(document.getElementById('distanciaBarlo').value) || 1;
                 const centroLat = (puntosGPS.comite.lat + puntosGPS.pin.lat) / 2;
                 const centroLon = (puntosGPS.comite.lon + puntosGPS.pin.lon) / 2;
 
                 if (tipo === 'bastones') {
-                    const hayOffset = document.getElementById('checkOffset').checked;
                     const barlo = calcularCoordenadaDestino(centroLat, centroLon, distancia, ejeViento);
                     listaPuntos.push({ nombre: 'Baliza 1', lat: barlo.lat, lon: barlo.lon });
                     
-                    if (hayOffset) {
+                    if (document.getElementById('checkOffset').checked) {
                         const modoOffset = document.getElementById('modoOffset').value;
                         let offDist = modoOffset === 'manual' ? (parseFloat(document.getElementById('offsetDist').value) || 0.1) : 0.1;
                         let offAng = modoOffset === 'manual' ? (ejeViento - (parseFloat(document.getElementById('offsetAng').value) || 90)) : (ejeViento - 90);
@@ -628,7 +699,7 @@
                 } else if (tipo === 'triangulo') {
                     const barlo = calcularCoordenadaDestino(centroLat, centroLon, distancia, ejeViento);
                     const modoTri = document.getElementById('modoTriangulo').value;
-                    let anguloReach = modoTri === 'manual' ? (ejeViento + (parseFloat(document.getElementById('triAnguloManual').value) || 60)) : (ejeViento + 120);
+                    let anguloReach = modoTri === 'manual' ? (ejeViento + (parseFloat(document.getElementById('triAnguloManual').value) || 120)) : (ejeViento + 120);
                     
                     const reach = calcularCoordenadaDestino(barlo.lat, barlo.lon, distancia, anguloReach);
                     listaPuntos.push({ nombre: 'Baliza 1', lat: barlo.lat, lon: barlo.lon });
@@ -636,7 +707,7 @@
                 }
             }
 
-            return listaPuntos;
+            return listaPuntos.length > 0 ? listaPuntos : null;
         }
 
         function exportarGPX() {
@@ -644,7 +715,7 @@
             const puntos = obtenerPuntosCalculados();
 
             if (!puntos) {
-                alert("Faltan coordenadas o datos de GPS necesarios para generar el archivo.");
+                alert("Faltan coordenadas o datos necesarios para generar el archivo.");
                 return;
             }
 
@@ -679,12 +750,11 @@
             const puntos = obtenerPuntosCalculados();
 
             if (!puntos) {
-                alert("Faltan coordenadas o datos de GPS necesarios para generar el archivo.");
+                alert("Faltan coordenadas o datos necesarios para generar el archivo.");
                 return;
             }
 
             let csv = "Baliza,Latitud,Longitud\n";
-
             puntos.forEach(p => {
                 csv += `"${p.nombre}",${p.lat.toFixed(6)},${p.lon.toFixed(6)}\n`;
             });
