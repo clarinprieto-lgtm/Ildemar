@@ -269,9 +269,9 @@
                 </select>
                 <div id="configPuertasManual" class="hidden" style="margin-top:6px;">
                     <label>Distancia hasta la línea de salida (NM):</label>
-                    <input type="number" id="puertasDistLinea" step="0.05" value="0.2">
+                    <input type="number" id="puertasDistLinea" step="0.05" value="0.2" oninput="actualizarDibujo()">
                     <label style="margin-top:4px;">Ancho total entre puertas (Metros):</label>
-                    <input type="number" id="puertasAncho" value="50">
+                    <input type="number" id="puertasAncho" value="50" oninput="actualizarDibujo()">
                 </div>
             </div>
         </div>
@@ -317,7 +317,7 @@
 
     <!-- 4. DIAGRAMA GRÁFICO Y EXPORTACIÓN -->
     <div class="card">
-        <div class="card-title">4. Campo esquemático y descargas</div>
+        <div class="card-title">4. Campo dinámico y descargas</div>
         <div class="canvas-container">
             <canvas id="canvasCampo"></canvas>
         </div>
@@ -518,130 +518,6 @@
             return { lat: lat2 * 180 / Math.PI, lon: lon2 * 180 / Math.PI };
         }
 
-        function actualizarDibujo() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            const w = canvas.width, h = canvas.height;
-            const tipo = document.getElementById('raceType').value;
-            const colorAzulOscuro = '#1E3A8A';
-            const colorNaranja = '#F97316';
-
-            // Posiciones base fijas en horizontal para Comité y Pin abajo
-            let comiteX = w * 0.65, comiteY = h * 0.80;
-            let pinX = w * 0.35, pinY = h * 0.80;
-
-            // Dibujar línea de salida
-            ctx.beginPath();
-            ctx.moveTo(pinX, pinY);
-            ctx.lineTo(comiteX, comiteY);
-            ctx.strokeStyle = colorAzulOscuro;
-            ctx.lineWidth = 3;
-            ctx.setLineDash([4, 4]);
-            ctx.stroke();
-            ctx.setLineDash([]);
-
-            dibujarPunto(comiteX, comiteY, colorAzulOscuro, 'Comite', 'abajo');
-            dibujarPunto(pinX, pinY, colorNaranja, 'Pin', 'abajo');
-
-            let centroSalX = (comiteX + pinX) / 2;
-            let centroSalY = (comiteY + pinY) / 2;
-
-            if (tipo === 'costera') {
-                if (document.getElementById('checkCosteraOffset').checked) {
-                    let desmX = comiteX + 30;
-                    let desmY = comiteY - 60;
-                    dibujarPunto(desmX, desmY, '#22C55E', 'Desmarque', 'arriba');
-                }
-
-                waypointsCosteros.forEach((wp, index) => {
-                    let wpX = w * (0.2 + (index * 0.2) % 0.7);
-                    let wpY = h * (0.15 + (index * 0.12) % 0.5);
-                    dibujarPunto(wpX, wpY, colorNaranja, wp.nombre || `WP ${index+1}`, 'arriba');
-                });
-                return;
-            }
-
-            if (tipo === 'bastones') {
-                const hayOffset = document.getElementById('checkOffset').checked;
-                let barloX = centroSalX;
-                let barloY = h * 0.25;
-
-                // Línea central del bastón
-                ctx.beginPath();
-                ctx.moveTo(centroSalX, centroSalY);
-                ctx.lineTo(barloX, barloY);
-                ctx.strokeStyle = '#CBD5E1';
-                ctx.lineWidth = 1.5;
-                ctx.stroke();
-                
-                if (hayOffset) {
-                    const modoOffset = document.getElementById('modoOffset').value;
-                    let anguloRel = modoOffset === 'manual' ? parseFloat(document.getElementById('offsetAng').value) || 90 : 90;
-                    
-                    // Si el ángulo es próximo a -90 o 90, se dibuja en horizontal respecto a la baliza 1
-                    let offsetDistPx = 35;
-                    let offsetX = barloX + (anguloRel < 0 ? -offsetDistPx : offsetDistPx);
-                    let offsetY = barloY;
-
-                    dibujarPunto(offsetX, offsetY, colorNaranja, 'Offset (1a)', anguloRel < 0 ? 'arriba-izq' : 'arriba-der');
-                }
-
-                dibujarPunto(barloX, barloY, colorNaranja, 'Baliza 1', hayOffset ? 'arriba-der' : 'arriba');
-
-                if (document.getElementById('checkPuertas').checked) {
-                    dibujarPunto(centroSalX - 35, centroSalY - 15, '#22C55E', 'Puerta 2s', 'abajo');
-                    dibujarPunto(centroSalX + 35, centroSalY - 15, '#22C55E', 'Puerta 2p', 'abajo');
-                }
-            } else if (tipo === 'triangulo') {
-                let barloX = centroSalX;
-                let barloY = h * 0.20;
-                let reachX = centroSalX - (comiteX - pinX) * 1.2;
-                let reachY = h * 0.52;
-
-                ctx.beginPath();
-                ctx.moveTo(centroSalX, centroSalY);
-                ctx.lineTo(barloX, barloY);
-                ctx.lineTo(reachX, reachY);
-                ctx.closePath();
-                ctx.strokeStyle = '#CBD5E1';
-                ctx.lineWidth = 1.5;
-                ctx.stroke();
-
-                dibujarPunto(barloX, barloY, colorNaranja, 'Baliza 1', 'arriba');
-                dibujarPunto(reachX, reachY, colorNaranja, 'Baliza 2', 'izquierda');
-            }
-        }
-
-        function dibujarPunto(x, y, color, texto, posicion = 'arriba') {
-            ctx.beginPath();
-            ctx.arc(x, y, 6, 0, Math.PI * 2);
-            ctx.fillStyle = color;
-            ctx.fill();
-            ctx.lineWidth = 2;
-            ctx.strokeStyle = '#FFF';
-            ctx.stroke();
-
-            ctx.font = "bold 11px sans-serif";
-            ctx.fillStyle = "#1E293B";
-
-            if (posicion === 'arriba') {
-                ctx.textAlign = "center";
-                ctx.fillText(texto, x, y - 12);
-            } else if (posicion === 'abajo') {
-                ctx.textAlign = "center";
-                ctx.fillText(texto, x, y + 18);
-            } else if (posicion === 'izquierda') {
-                ctx.textAlign = "right";
-                ctx.fillText(texto, x - 10, y + 4);
-            } else if (posicion === 'arriba-izq') {
-                ctx.textAlign = "right";
-                ctx.fillText(texto, x - 8, y - 6);
-            } else if (posicion === 'arriba-der') {
-                ctx.textAlign = "left";
-                ctx.fillText(texto, x + 8, y - 6);
-            }
-            ctx.textAlign = "left"; 
-        }
-
         function obtenerPuntosCalculados() {
             const tipo = document.getElementById('raceType').value;
             let listaPuntos = [];
@@ -652,12 +528,13 @@
             }
 
             if (tipo === 'costera') {
+                let refLat = puntosGPS && puntosGPS.comite ? puntosGPS.comite.lat : 39.4;
+                let refLon = puntosGPS && puntosGPS.comite ? puntosGPS.comite.lon : -0.3;
+
                 if (document.getElementById('checkCosteraOffset').checked) {
                     let cDist = parseFloat(document.getElementById('costeraOffsetDist').value);
                     let cRumbo = parseFloat(document.getElementById('costeraOffsetRumbo').value);
                     if (!isNaN(cDist) && !isNaN(cRumbo)) {
-                        let refLat = puntosGPS && puntosGPS.comite ? puntosGPS.comite.lat : 39.4;
-                        let refLon = puntosGPS && puntosGPS.comite ? puntosGPS.comite.lon : -0.3;
                         const offCostera = calcularCoordenadaDestino(refLat, refLon, cDist, cRumbo);
                         listaPuntos.push({ nombre: 'Desmarque', lat: offCostera.lat, lon: offCostera.lon });
                     }
@@ -723,6 +600,141 @@
             }
 
             return listaPuntos.length > 0 ? listaPuntos : null;
+        }
+
+        // MOTOR DE RENDERIZADO CON ESCALA Y ENCUADRE DINÁMICO (BOUNDING BOX)
+        function actualizarDibujo() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const w = canvas.width, h = canvas.height;
+            const tipo = document.getElementById('raceType').value;
+
+            // Recopilar todos los puntos que deben formar parte del gráfico
+            let puntos = obtenerPuntosCalculados();
+
+            // Si faltan datos base en bastones/triángulo, pintamos un esquema por defecto seguro
+            if (!puntos || puntos.length === 0) {
+                puntos = [
+                    { nombre: 'Comite', lat: 39.402, lon: -0.320 },
+                    { nombre: 'Pin', lat: 39.400, lon: -0.324 }
+                ];
+                if (tipo !== 'costera') {
+                    puntos.push({ nombre: 'Baliza 1', lat: 39.420, lon: -0.322 });
+                }
+            }
+
+            // Calcular los límites (Bounding Box) de todas las coordenadas geográficas
+            let minLat = Math.min(...puntos.map(p => p.lat));
+            let maxLat = Math.max(...puntos.map(p => p.lat));
+            let minLon = Math.min(...puntos.map(p => p.lon));
+            let maxLon = Math.max(...puntos.map(p => p.lon));
+
+            // Evitar división por cero si todos los puntos caen exactamente en el mismo sitio
+            if (minLat === maxLat) { minLat -= 0.001; maxLat += 0.001; }
+            if (minLon === maxLon) { minLon -= 0.001; maxLon += 0.001; }
+
+            // Añadir un margen del 15% alrededor del canvas para que los nombres de las balizas nunca se corten
+            const margenPx = 50;
+            const drawW = w - (margenPx * 2);
+            const drawH = h - (margenPx * 2);
+
+            let latSpan = maxLat - minLat;
+            let lonSpan = maxLon - minLon;
+
+            // Función de transformación de coordenadas geográficas a píxeles del canvas ajustados
+            function geoToPixel(lat, lon) {
+                // Invertimos latitud porque el eje Y en canvas crece hacia abajo
+                let x = margenPx + ((lon - minLon) / lonSpan) * drawW;
+                let y = margenPx + ((maxLat - lat) / latSpan) * drawH;
+                return { x, y };
+            }
+
+            // 1. Dibujar líneas de conexión del campo según la regata
+            const comitePt = puntos.find(p => p.nombre === 'Comite');
+            const pinPt = puntos.find(p => p.nombre === 'Pin');
+            const barloPt = puntos.find(p => p.nombre === 'Baliza 1');
+            const reachPt = puntos.find(p => p.nombre === 'Baliza 2');
+            const centroLat = comitePt && pinPt ? (comitePt.lat + pinPt.lat) / 2 : null;
+            const centroLon = comitePt && pinPt ? (comitePt.lon + pinPt.lon) / 2 : null;
+
+            if (comitePt && pinPt) {
+                let p1 = geoToPixel(pinPt.lat, pinPt.lon);
+                let p2 = geoToPixel(comitePt.lat, comitePt.lon);
+                ctx.beginPath();
+                ctx.moveTo(p1.x, p1.y);
+                ctx.lineTo(p2.x, p2.y);
+                ctx.strokeStyle = '#1E3A8A';
+                ctx.lineWidth = 3;
+                ctx.setLineDash([4, 4]);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+
+            if (tipo === 'bastones' && barloPt && centroLat !== null) {
+                let pCentro = geoToPixel(centroLat, centroLon);
+                let pBarlo = geoToPixel(barloPt.lat, barloPt.lon);
+                ctx.beginPath();
+                ctx.moveTo(pCentro.x, pCentro.y);
+                ctx.lineTo(pBarlo.x, pBarlo.y);
+                ctx.strokeStyle = '#CBD5E1';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+            } else if (tipo === 'triangulo' && barloPt && reachPt && centroLat !== null) {
+                let pCentro = geoToPixel(centroLat, centroLon);
+                let pBarlo = geoToPixel(barloPt.lat, barloPt.lon);
+                let pReach = geoToPixel(reachPt.lat, reachPt.lon);
+                ctx.beginPath();
+                ctx.moveTo(pCentro.x, pCentro.y);
+                ctx.lineTo(pBarlo.x, pBarlo.y);
+                ctx.lineTo(pReach.x, pReach.y);
+                ctx.closePath();
+                ctx.strokeStyle = '#CBD5E1';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+            }
+
+            // 2. Pintar cada punto dinámicamente con su nombre asegurando que no rebase el cuadro
+            puntos.forEach(p => {
+                let coords = geoToPixel(p.lat, p.lon);
+                let color = '#F97316';
+                if (p.nombre === 'Comite') color = '#1E3A8A';
+                else if (p.nombre.includes('Puerta') || p.nombre === 'Desmarque') color = '#22C55E';
+
+                // Determinar la posición óptima del texto para que no se salga de los márgenes del canvas
+                let posicionTexto = 'arriba';
+                if (coords.y < 30) posicionTexto = 'abajo';
+                if (coords.x < 50) posicionTexto = 'derecha';
+                if (coords.x > w - 50) posicionTexto = 'izquierda';
+
+                dibujarPuntoConNombre(coords.x, coords.y, color, p.nombre, posicionTexto);
+            });
+        }
+
+        function dibujarPuntoConNombre(x, y, color, texto, posicion) {
+            ctx.beginPath();
+            ctx.arc(x, y, 6, 0, Math.PI * 2);
+            ctx.fillStyle = color;
+            ctx.fill();
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#FFF';
+            ctx.stroke();
+
+            ctx.font = "bold 11px sans-serif";
+            ctx.fillStyle = "#1E293B";
+
+            if (posicion === 'arriba') {
+                ctx.textAlign = "center";
+                ctx.fillText(texto, x, y - 10);
+            } else if (posicion === 'abajo') {
+                ctx.textAlign = "center";
+                ctx.fillText(texto, x, y + 18);
+            } else if (posicion === 'derecha') {
+                ctx.textAlign = "left";
+                ctx.fillText(texto, x + 10, y + 4);
+            } else if (posicion === 'izquierda') {
+                ctx.textAlign = "right";
+                ctx.fillText(texto, x - 10, y + 4);
+            }
+            ctx.textAlign = "left";
         }
 
         function exportarGPX() {
