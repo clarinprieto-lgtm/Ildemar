@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ILDEMAR IV - Campo de Regatas</title>
+    <style>
+        :root {
+            --bg-color: #FFFFFF;
+            --card-bg: #F8FAFC;
+            --border-color: #E2E8F0;
+            --blue-dark: #1E3A8A;
+            --blue-soft: #2563EB;
+            --orange-main: #F97316;
+            --orange-alt: #F97316;
+            --text-dark: #1E293B;
+            --text-gray: #64748B;
+            --danger: #EF4444;
+            --success: #22C55E;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-dark);
+            padding: 16px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            padding: 12px 0;
+            border-bottom: 3px solid var(--orange-main);
+            margin-bottom: 16px;
+        }
+
+        .team-title {
+            font-size: 1.5rem;
+            font-weight: 900;
+            color: var(--blue-dark);
+            text-transform: uppercase;
+        }
+
+        .team-subtitle {
+            font-size: 0.85rem;
+            color: var(--orange-main);
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-top: 2px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 10px;
+            padding: 14px;
+            margin-bottom: 14px;
+            border: 1px solid var(--border-color);
+        }
+
+        .card-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--blue-dark);
+            margin-bottom: 10px;
+        }
+
+        .btn {
+            padding: 12px;
+            border-radius: 6px;
+            border: none;
+            font-weight: 700;
+            font-size: 0.95rem;
+            cursor: pointer;
+            text-align: center;
+            width: 100%;
+            display: block;
+            margin-top: 8px;
+        }
+
+        .btn-blue { background: var(--blue-dark); color: #FFF; width: 100%; }
+        .btn-orange { background: var(--orange-main); color: #FFF; width: 100%; }
+        .btn-danger { background: var(--danger); color: #FFF; width: 100%; font-size: 0.75rem; padding: 6px; margin-top: 4px; }
+        
+        .btn-gpx { background: var(--orange-main); color: #FFF; }
+        .btn-csv { background: var(--orange-alt); color: #FFF; }
+
+        .coords-info {
+            font-family: monospace;
+            font-size: 0.75rem;
+            color: var(--text-gray);
+            margin-top: 4px;
+            background: #FFF;
+            padding: 4px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 10px;
+        }
+
+        label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: var(--text-dark);
+        }
+
+        select, input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: #FFF;
+            font-size: 0.9rem;
+        }
+
+        .sub-config {
+            background: #EDF2F7;
+            padding: 8px;
+            border-radius: 6px;
+            margin-top: 6px;
+            margin-bottom: 8px;
+        }
+
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            height: 350px;
+            background: #FFFFFF;
+            border: 2px solid var(--blue-dark);
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 14px;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            position: relative;
+            z-index: 2;
+        }
+
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="team-title">Ildemar iv - Sailing Team</div>
+        <div class="team-subtitle">Campo de regatas</div>
+    </div>
+
+    <!-- 1. TIPO DE REGATA -->
+    <div class="card">
+        <div class="card-title">1. Tipo de regata</div>
+        <select id="raceType" onchange="cambiarTipoRegata()">
+            <option value="bastones">Bastones (Barlovento - Sotavento)</option>
+            <option value="triangulo">Triángulo</option>
+            <option value="costera">Costera</option>
+        </select>
+    </div>
+
+    <!-- 2. REGISTRO GPS DE SALIDA -->
+    <div class="card" id="seccionSalida">
+        <div class="card-title">2. Línea de salida (GPS Real)</div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div>
+                <button class="btn btn-blue" onclick="marcarGPS('comite')">📍 Marcar Comité</button>
+                <div id="comiteInfo" class="coords-info">Sin registrar</div>
+                <button id="btnDelComite" class="btn btn-danger hidden" onclick="eliminarGPS('comite')">Eliminar</button>
+            </div>
+            <div>
+                <button class="btn btn-blue" onclick="marcarGPS('pin')">📍 Marcar Pin</button>
+                <div id="pinInfo" class="coords-info">Sin registrar</div>
+                <button id="btnDelPin" class="btn btn-danger hidden" onclick="eliminarGPS('pin')">Eliminar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. PARÁMETROS Y CÁLCULOS -->
+    <div class="card">
+        <div class="card-title">3. Configuración y cálculos</div>
+        
+        <div id="parametrosGenerales">
+            <div class="form-group">
+                <label>Eje del viento (° Grados):</label>
+                <input type="number" id="ejeViento" value="45" oninput="actualizarDibujo()">
+            </div>
+            <div class="form-group">
+                <label>Distancia a barlovento (Millas Náuticas):</label>
+                <input type="number" id="distanciaBarlo" step="0.1" value="1.0" oninput="actualizarDibujo()">
+            </div>
+        </div>
+
+        <!-- BASTONES -->
+        <div id="opcionesBastones">
+            <div class="form-group" style="display: flex; align-items: center; gap: 8px;">
+                <input type="checkbox" id="checkOffset" style="width: auto;" onchange="toggleOffset()">
+                <label for="checkOffset" style="margin-bottom:0; cursor:pointer;">¿Hay baliza de offset?</label>
+            </div>
+            <div id="bloqueOffset" class="sub-config hidden">
+                <label>¿Cómo deseas calcular el offset?</label>
+                <select id="modoOffset" onchange="toggleOffsetManual()">
+                    <option value="auto">Automático (0.1 NM)</option>
+                    <option value="manual">Manual (Distancia y ángulo propios)</option>
+                </select>
+                <div id="configOffsetManual" class="hidden" style="margin-top:6px;">
+                    <label>Distancia (Millas Náuticas):</label>
+                    <input type="number" id="offsetDist" step="0.01" value="0.1">
+                    <label style="margin-top:4px;">Ángulo relativo (°):</label>
+                    <input type="number" id="offsetAng" value="90">
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-top: 12px; display: flex; align-items: center; gap: 8px;">
+                <input type="checkbox" id="checkPuertas" style="width: auto;" onchange="togglePuertas()">
+                <label for="checkPuertas" style="margin-bottom:0; cursor:pointer;">¿Hay puertas en sotavento (2 balizas)?</label>
+            </div>
+            <div id="bloquePuertas" class="sub-config hidden">
+                <label>¿Cómo deseas calcular las puertas?</label>
+                <select id="modoPuertas" onchange="togglePuertasManual()">
+                    <option value="auto">Automático (0.2 NM desde la línea)</option>
+                    <option value="manual">Manual (Distancia a línea y ancho)</option>
+                </select>
+                <div id="configPuertasManual" class="hidden" style="margin-top:6px;">
+                    <label>Distancia hasta la línea de salida (NM):</label>
+                    <input type="number" id="puertasDistLinea" step="0.05" value="0.2">
+                    <label style="margin-top:4px;">Ancho total entre puertas (Metros):</label>
+                    <input type="number" id="puertasAncho" value="50">
+                </div>
+            </div>
+        </div>
+
+        <!-- TRIÁNGULO -->
+        <div id="opcionesTriangulo" class="hidden">
+            <div class="form-group">
+                <label>Geometría del triángulo:</label>
+                <select id="modoTriangulo" onchange="toggleManualTriangulo()">
+                    <option value="auto">Automático (Equilátero 60°)</option>
+                    <option value="manual">Manual (Definir ángulo de giro)</option>
+                </select>
+            </div>
+            <div id="configTriangulo" class="sub-config hidden">
+                <label>Ángulo de apertura del triángulo (°):</label>
+                <input type="number" id="triAnguloManual" value="60">
+            </div>
+        </div>
+
+        <!-- COSTERA -->
+        <div id="opcionesCostera" class="hidden">
+            <div class="form-group">
+                <label>Nombre de la baliza de destino:</label>
+                <input type="text" id="costeraNombre" value="Waypoint" oninput="actualizarDibujo()">
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 8px; margin-bottom: 8px;">
+                <div>
+                    <label>Latitud:</label>
+                    <input type="number" id="costeraLat" step="0.00001" placeholder="" oninput="actualizarDibujo()">
+                </div>
+                <div>
+                    <label>Hemisferio:</label>
+                    <select id="costeraLatHem" onchange="actualizarDibujo()">
+                        <option value="N">N</option>
+                        <option value="S">S</option>
+                    </select>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 8px; margin-bottom: 8px;">
+                <div>
+                    <label>Longitud:</label>
+                    <input type="number" id="costeraLon" step="0.00001" placeholder="" oninput="actualizarDibujo()">
+                </div>
+                <div>
+                    <label>Hemisferio:</label>
+                    <select id="costeraLonHem" onchange="actualizarDibujo()">
+                        <option value="E">E</option>
+                        <option value="W">W</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-top: 10px; display: flex; align-items: center; gap: 8px;">
+                <input type="checkbox" id="checkCosteraOffset" style="width: auto;" onchange="toggleCosteraOffset()">
+                <label for="checkCosteraOffset" style="margin-bottom:0; cursor:pointer;">¿Hay baliza de desmarque?</label>
+            </div>
+            <div id="bloqueCosteraOffset" class="sub-config hidden">
+                <label>¿Cómo deseas calcular el desmarque?</label>
+                <select id="modoCosteraOffset" onchange="toggleCosteraOffsetManual()">
+                    <option value="auto">Automático (0.1 NM)</option>
+                    <option value="manual">Manual (Rumbo y distancia)</option>
+                </select>
+                <div id="configCosteraOffsetManual" class="hidden" style="margin-top:6px;">
+                    <label>Distancia (Millas Náuticas):</label>
+                    <input type="number" id="costeraOffsetDist" step="0.01" value="0.1" oninput="actualizarDibujo()">
+                    <label style="margin-top:4px;">Rumbo (°):</label>
+                    <input type="number" id="costeraOffsetRumbo" value="315" oninput="actualizarDibujo()">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. DIAGRAMA GRÁFICO Y EXPORTACIÓN -->
+    <div class="card">
+        <div class="card-title">4. Campo proporcional y descargas</div>
+        <div class="canvas-container">
+            <canvas id="canvasCampo"></canvas>
+        </div>
+        <button class="btn btn-gpx" onclick="exportarGPX()">💾 Descargar Archivo .GPX (Plotter/App)</button>
+        <button class="btn btn-csv" onclick="exportarCSV()">📊 Descargar Archivo .CSV (Ver Coordenadas)</button>
+    </div>
+
+    <script>
+        let puntosGPS = { comite: null, pin: null };
+
+        const canvas = document.getElementById('canvasCampo');
+        const ctx = canvas.getContext('2d');
+
+        function ajustarCanvas() {
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+            actualizarDibujo();
+        }
+        window.addEventListener('load', ajustarCanvas);
+        window.addEventListener('resize', ajustarCanvas);
+
+        function cambiarTipoRegata() {
+            const tipo = document.getElementById('raceType').value;
+            document.getElementById('opcionesBastones').classList.toggle('hidden', tipo !== 'bastones');
+            document.getElementById('opcionesTriangulo').classList.toggle('hidden', tipo !== 'triangulo');
+            document.getElementById('opcionesCostera').classList.toggle('hidden', tipo !== 'costera');
+            document.getElementById('parametrosGenerales').classList.toggle('hidden', tipo === 'costera');
+            actualizarDibujo();
+        }
+
+        function toggleOffset() {
+            const activo = document.getElementById('checkOffset').checked;
+            document.getElementById('bloqueOffset').classList.toggle('hidden', !activo);
+            actualizarDibujo();
+        }
+
+        function toggleOffsetManual() {
+            const manual = document.getElementById('modoOffset').value === 'manual';
+            document.getElementById('configOffsetManual').classList.toggle('hidden', !manual);
+            actualizarDibujo();
+        }
+
+        function togglePuertas() {
+            const activo = document.getElementById('checkPuertas').checked;
+            document.getElementById('bloquePuertas').classList.toggle('hidden', !activo);
+            actualizarDibujo();
+        }
+
+        function togglePuertasManual() {
+            const manual = document.getElementById('modoPuertas').value === 'manual';
+            document.getElementById('configPuertasManual').classList.toggle('hidden', !manual);
+            actualizarDibujo();
+        }
+
+        function toggleManualTriangulo() {
+            const manual = document.getElementById('modoTriangulo').value === 'manual';
+            document.getElementById('configTriangulo').classList.toggle('hidden', !manual);
+            actualizarDibujo();
+        }
+
+        function toggleCosteraOffset() {
+            const activo = document.getElementById('checkCosteraOffset').checked;
+            document.getElementById('bloqueCosteraOffset').classList.toggle('hidden', !activo);
+            actualizarDibujo();
+        }
+
+        function toggleCosteraOffsetManual() {
+            const manual = document.getElementById('modoCosteraOffset').value === 'manual';
+            document.getElementById('configCosteraOffsetManual').classList.toggle('hidden', !manual);
+            actualizarDibujo();
+        }
+
+        function marcarGPS(tipo) {
+            if (!navigator.geolocation) {
+                alert("Geolocalización no disponible en este navegador.");
+                return;
+            }
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    let lat = pos.coords.latitude;
+                    let lon = pos.coords.longitude;
+                    puntosGPS[tipo] = { lat: lat, lon: lon };
+                    
+                    let latLetra = lat >= 0 ? 'N' : 'S';
+                    let lonLetra = lon >= 0 ? 'E' : 'W';
+                    
+                    document.getElementById(tipo + 'Info').innerHTML = 
+                        `Lat: ${Math.abs(lat).toFixed(5)}° ${latLetra}<br>Lon: ${Math.abs(lon).toFixed(5)}° ${lonLetra}`;
+                    document.getElementById('btnDel' + (tipo === 'comite' ? 'Comite' : 'Pin')).classList.remove('hidden');
+                    actualizarDibujo();
+                },
+                (err) => {
+                    alert("No se pudo obtener la posición GPS real. Asegúrate de abrir este archivo desde un servidor local o subirlo a una plataforma web (como CodePen) si el navegador bloquea archivos locales (file:///). (Error: " + err.message + ")");
+                },
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+            );
+        }
+
+        function eliminarGPS(tipo) {
+            puntosGPS[tipo] = null;
+            document.getElementById(tipo + 'Info').innerText = "Sin registrar";
+            document.getElementById('btnDel' + (tipo === 'comite' ? 'Comite' : 'Pin')).classList.add('hidden');
+            actualizarDibujo();
+        }
+
+        function calcularCoordenadaDestino(lat, lon, distanciaNM, rumboDeg) {
+            const R = 3440.065;
+            const rLat = lat * Math.PI / 180;
+            const rLon = lon * Math.PI / 180;
+            const rBrng = rumboDeg * Math.PI / 180;
+            const dR = distanciaNM / R;
+
+            const lat2 = Math.asin(Math.sin(rLat) * Math.cos(dR) + Math.cos(rLat) * Math.sin(dR) * Math.cos(rBrng));
+            const lon2 = rLon + Math.atan2(Math.sin(rBrng) * Math.sin(dR) * Math.cos(rLat), Math.cos(dR) - Math.sin(rLat) * Math.sin(lat2));
+
+            return { lat: lat2 * 180 / Math.PI, lon: lon2 * 180 / Math.PI };
+        }
+
+        function obtenerCoordenadasCostera() {
+            let latVal = parseFloat(document.getElementById('costeraLat').value);
+            let lonVal = parseFloat(document.getElementById('costeraLon').value);
+            const latHem = document.getElementById('costeraLatHem').value;
+            const lonHem = document.getElementById('costeraLonHem').value;
+
+            if (isNaN(latVal) || isNaN(lonVal)) return null;
+
+            if (latHem === 'S') latVal = -latVal;
+            if (lonHem === 'W') lonVal = -lonVal;
+
+            return { lat: latVal, lon: lonVal };
+        }
+
+        function actualizarDibujo() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const w = canvas.width, h = canvas.height;
+            const tipo = document.getElementById('raceType').value;
+            const colorAzulOscuro = '#1E3A8A';
+            const colorNaranja = '#F97316';
+
+            if (tipo === 'costera') {
+                let comiteX = w * 0.65, comiteY = h * 0.8;
+                let pinX = w * 0.35, pinY = h * 0.8;
+                let destinoX = w * 0.5, destinoY = h * 0.25;
+
+                ctx.beginPath();
+                ctx.moveTo(pinX, pinY);
+                ctx.lineTo(comiteX, comiteY);
+                ctx.strokeStyle = colorAzulOscuro;
+                ctx.lineWidth = 3;
+                ctx.setLineDash([4, 4]);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                dibujarPunto(comiteX, comiteY, colorAzulOscuro, 'Comite', 'abajo');
+                dibujarPunto(pinX, pinY, colorNaranja, 'Pin', 'abajo');
+
+                let nombreDestino = document.getElementById('costeraNombre').value || 'Waypoint';
+                dibujarPunto(destinoX, destinoY, colorNaranja, nombreDestino, 'arriba');
+
+                if (document.getElementById('checkCosteraOffset').checked) {
+                    let desmarqueX = pinX - 25;
+                    let desmarqueY = pinY - 80;
+
+                    dibujarPunto(desmarqueX, desmarqueY, '#22C55E', 'Desmarque', 'arriba-izq');
+                }
+                return;
+            }
+
+            let centroX = w * 0.5;
+            let comiteX = centroX + 60, comiteY = h * 0.8;
+            let pinX = centroX - 60, pinY = h * 0.8;
+
+            ctx.beginPath();
+            ctx.moveTo(pinX, pinY);
+            ctx.lineTo(comiteX, comiteY);
+            ctx.strokeStyle = colorAzulOscuro;
+            ctx.lineWidth = 3;
+            ctx.setLineDash([4, 4]);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            dibujarPunto(comiteX, comiteY, colorAzulOscuro, 'Comite', 'abajo');
+            dibujarPunto(pinX, pinY, colorNaranja, 'Pin', 'abajo');
+
+            if (tipo === 'bastones') {
+                const hayOffset = document.getElementById('checkOffset').checked;
+                let barloX = hayOffset ? centroX + 25 : centroX;
+                let barloY = h * 0.25;
+                
+                if (hayOffset) {
+                    let offX = centroX - 35;
+                    let offY = barloY; 
+
+                    dibujarPunto(offX, offY, colorNaranja, 'Offset (1a)', 'arriba-izq');
+                }
+
+                dibujarPunto(barloX, barloY, colorNaranja, 'Baliza 1', hayOffset ? 'arriba-der' : 'arriba');
+
+                if (document.getElementById('checkPuertas').checked) {
+                    dibujarPunto(centroX - 35, h * 0.65, '#22C55E', 'Puerta 2s', 'abajo');
+                    dibujarPunto(centroX + 35, h * 0.65, '#22C55E', 'Puerta 2p', 'abajo');
+                }
+            } else if (tipo === 'triangulo') {
+                let barloX = centroX, barloY = h * 0.25;
+                let reachX = centroX - 70, reachY = h * 0.55;
+                
+                dibujarPunto(barloX, barloY, colorNaranja, 'Baliza 1', 'arriba');
+                dibujarPunto(reachX, reachY, colorNaranja, 'Baliza 2', 'izquierda');
+            }
+        }
+
+        function dibujarPunto(x, y, color, texto, posicion = 'arriba') {
+            ctx.beginPath();
+            ctx.arc(x, y, 6, 0, Math.PI * 2);
+            ctx.fillStyle = color;
+            ctx.fill();
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#FFF';
+            ctx.stroke();
+
+            ctx.font = "bold 11px sans-serif";
+            ctx.fillStyle = "#1E293B";
+
+            if (posicion === 'arriba') {
+                ctx.textAlign = "center";
+                ctx.fillText(texto, x, y - 12);
+            } else if (posicion === 'abajo') {
+                ctx.textAlign = "center";
+                ctx.fillText(texto, x, y + 18);
+            } else if (posicion === 'izquierda') {
+                ctx.textAlign = "right";
+                ctx.fillText(texto, x - 10, y + 4);
+            } else if (posicion === 'arriba-izq') {
+                ctx.textAlign = "right";
+                ctx.fillText(texto, x - 8, y - 6);
+            } else if (posicion === 'arriba-der') {
+                ctx.textAlign = "left";
+                ctx.fillText(texto, x + 8, y - 6);
+            }
+            ctx.textAlign = "left"; 
+        }
+
+        function obtenerPuntosCalculados() {
+            const tipo = document.getElementById('raceType').value;
+            let listaPuntos = [];
+
+            if (tipo === 'costera') {
+                const coords = obtenerCoordenadasCostera();
+                if (!coords) return null;
+                let nombre = document.getElementById('costeraNombre').value || 'Waypoint';
+                
+                if (puntosGPS.comite && puntosGPS.pin) {
+                    listaPuntos.push({ nombre: 'Comite', lat: puntosGPS.comite.lat, lon: puntosGPS.comite.lon });
+                    listaPuntos.push({ nombre: 'Pin', lat: puntosGPS.pin.lat, lon: puntosGPS.pin.lon });
+                }
+
+                if (document.getElementById('checkCosteraOffset').checked) {
+                    const modoCosto = document.getElementById('modoCosteraOffset').value;
+                    let cDist = modoCosto === 'manual' ? (parseFloat(document.getElementById('costeraOffsetDist').value) || 0.1) : 0.1;
+                    let cRumbo = modoCosto === 'manual' ? (parseFloat(document.getElementById('costeraOffsetRumbo').value) || 315) : 315;
+                    
+                    let refLat = puntosGPS && puntosGPS.pin ? puntosGPS.pin.lat : coords.lat - 0.01;
+                    let refLon = puntosGPS && puntosGPS.pin ? puntosGPS.pin.lon : coords.lon - 0.01;
+
+                    const offCostera = calcularCoordenadaDestino(refLat, refLon, cDist, cRumbo);
+                    listaPuntos.push({ nombre: 'Desmarque', lat: offCostera.lat, lon: offCostera.lon });
+                }
+
+                listaPuntos.push({ nombre: nombre, lat: coords.lat, lon: coords.lon });
+
+            } else {
+                if (!puntosGPS.comite || !puntosGPS.pin) return null;
+
+                listaPuntos.push({ nombre: 'Comite', lat: puntosGPS.comite.lat, lon: puntosGPS.comite.lon });
+                listaPuntos.push({ nombre: 'Pin', lat: puntosGPS.pin.lat, lon: puntosGPS.pin.lon });
+
+                const ejeViento = parseFloat(document.getElementById('ejeViento').value) || 0;
+                const distancia = parseFloat(document.getElementById('distanciaBarlo').value) || 1;
+                const centroLat = (puntosGPS.comite.lat + puntosGPS.pin.lat) / 2;
+                const centroLon = (puntosGPS.comite.lon + puntosGPS.pin.lon) / 2;
+
+                if (tipo === 'bastones') {
+                    const hayOffset = document.getElementById('checkOffset').checked;
+                    const barlo = calcularCoordenadaDestino(centroLat, centroLon, distancia, ejeViento);
+                    listaPuntos.push({ nombre: 'Baliza 1', lat: barlo.lat, lon: barlo.lon });
+                    
+                    if (hayOffset) {
+                        const modoOffset = document.getElementById('modoOffset').value;
+                        let offDist = modoOffset === 'manual' ? (parseFloat(document.getElementById('offsetDist').value) || 0.1) : 0.1;
+                        let offAng = modoOffset === 'manual' ? (ejeViento - (parseFloat(document.getElementById('offsetAng').value) || 90)) : (ejeViento - 90);
+                        
+                        const desm = calcularCoordenadaDestino(barlo.lat, barlo.lon, offDist, offAng);
+                        listaPuntos.push({ nombre: 'Offset (1a)', lat: desm.lat, lon: desm.lon });
+                    }
+
+                    if (document.getElementById('checkPuertas').checked) {
+                        const modoPuertas = document.getElementById('modoPuertas').value;
+                        let puertaDistNM = modoPuertas === 'manual' ? (parseFloat(document.getElementById('puertasDistLinea').value) || 0.2) : 0.2;
+                        let anchoMetros = modoPuertas === 'manual' ? (parseFloat(document.getElementById('puertasAncho').value) || 50) : 50;
+                        
+                        const centroSotavento = calcularCoordenadaDestino(centroLat, centroLon, distancia - puertaDistNM, ejeViento);
+                        const anchoNM = anchoMetros / 1852;
+                        
+                        const puerta2S = calcularCoordenadaDestino(centroSotavento.lat, centroSotavento.lon, anchoNM / 2, ejeViento - 90);
+                        const puerta2P = calcularCoordenadaDestino(centroSotavento.lat, centroSotavento.lon, anchoNM / 2, ejeViento + 90);
+
+                        listaPuntos.push({ nombre: 'Puerta 2s', lat: puerta2S.lat, lon: puerta2S.lon });
+                        listaPuntos.push({ nombre: 'Puerta 2p', lat: puerta2P.lat, lon: puerta2P.lon });
+                    }
+
+                } else if (tipo === 'triangulo') {
+                    const barlo = calcularCoordenadaDestino(centroLat, centroLon, distancia, ejeViento);
+                    const modoTri = document.getElementById('modoTriangulo').value;
+                    let anguloReach = modoTri === 'manual' ? (ejeViento + (parseFloat(document.getElementById('triAnguloManual').value) || 60)) : (ejeViento + 120);
+                    
+                    const reach = calcularCoordenadaDestino(barlo.lat, barlo.lon, distancia, anguloReach);
+                    listaPuntos.push({ nombre: 'Baliza 1', lat: barlo.lat, lon: barlo.lon });
+                    listaPuntos.push({ nombre: 'Baliza 2', lat: reach.lat, lon: reach.lon });
+                }
+            }
+
+            return listaPuntos;
+        }
+
+        function exportarGPX() {
+            const tipo = document.getElementById('raceType').value;
+            const puntos = obtenerPuntosCalculados();
+
+            if (!puntos) {
+                alert("Faltan coordenadas o datos de GPS necesarios para generar el archivo.");
+                return;
+            }
+
+            let gpx = `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="ILDEMAR IV App" xmlns="http://www.topografix.com/GPX/1/1">
+  <metadata><name>Regata - ${tipo.toUpperCase()}</name></metadata>\n`;
+
+            puntos.forEach(p => {
+                let sym = 'Mark';
+                if (p.nombre === 'Comite') sym = 'Boat';
+                else if (p.nombre === 'Pin') sym = 'Buoy';
+                else if (p.nombre.includes('Puerta')) sym = 'Gate';
+                else if (p.nombre === 'Waypoint') sym = 'Waypoint';
+
+                gpx += `  <wpt lat="${p.lat.toFixed(6)}" lon="${p.lon.toFixed(6)}"><name>${p.nombre}</name><sym>${sym}</sym></wpt>\n`;
+            });
+
+            gpx += `</gpx>`;
+
+            const blob = new Blob([gpx], { type: 'application/gpx+xml' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `ildemar_iv_${tipo}.gpx`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        function exportarCSV() {
+            const tipo = document.getElementById('raceType').value;
+            const puntos = obtenerPuntosCalculados();
+
+            if (!puntos) {
+                alert("Faltan coordenadas o datos de GPS necesarios para generar el archivo.");
+                return;
+            }
+
+            let csv = "Baliza,Latitud,Longitud\n";
+
+            puntos.forEach(p => {
+                csv += `"${p.nombre}",${p.lat.toFixed(6)},${p.lon.toFixed(6)}\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const aElem = document.createElement('a');
+            aElem.href = url;
+            aElem.download = `ildemar_iv_${tipo}_coordenadas.csv`;
+            document.body.appendChild(aElem);
+            aElem.click();
+            document.body.removeChild(aElem);
+        }
+    </script>
+</body>
+</html>
