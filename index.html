@@ -287,13 +287,12 @@
             </div>
             <div id="configTriangulo" class="sub-config hidden">
                 <label>Ángulo de apertura del triángulo (°):</label>
-                <input type="number" id="triAnguloManual" value="120">
+                <input type="number" id="triAnguloManual" value="120" oninput="actualizarDibujo()">
             </div>
         </div>
 
         <!-- COSTERA -->
         <div id="opcionesCostera" class="hidden">
-            <!-- Desmarque primero -->
             <div class="form-group" style="display: flex; align-items: center; gap: 8px;">
                 <input type="checkbox" id="checkCosteraOffset" style="width: auto;" onchange="toggleCosteraOffset()">
                 <label for="checkCosteraOffset" style="margin-bottom:0; cursor:pointer;">¿Hay baliza de desmarque?</label>
@@ -310,7 +309,6 @@
 
             <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 12px 0;">
 
-            <!-- Waypoints múltiples -->
             <label style="font-weight: 700; color: var(--blue-dark); margin-bottom: 6px;">Waypoints de la ruta costera:</label>
             <div id="listaWaypointsContainer"></div>
             <button class="btn btn-success" onclick="agregarWaypointCostero()">+ Añadir Waypoint</button>
@@ -527,18 +525,13 @@
             const colorAzulOscuro = '#1E3A8A';
             const colorNaranja = '#F97316';
 
-            // Centro base predeterminado de referencia si no hay GPS/Pin configurado
-            let refLat = (puntosGPS && puntosGPS.pin) ? puntosGPS.pin.lat : 40.0;
-            let refLon = (puntosGPS && puntosGPS.pin) ? puntosGPS.pin.lon : 0.0;
-
             let comiteX = w * 0.5 + 40, comiteY = h * 0.75;
             let pinX = w * 0.5 - 40, pinY = h * 0.75;
 
             if (puntosGPS.comite && puntosGPS.pin) {
-                // Posiciones relativas reales basadas en las diferencias de coordenadas (aprox. Mercator plana local)
                 let dLat = puntosGPS.comite.lat - puntosGPS.pin.lat;
                 let dLon = puntosGPS.comite.lon - puntosGPS.pin.lon;
-                let escalaLoc = 150000; // Factor visual adaptado al canvas
+                let escalaLoc = 150000;
                 let centroXCanvas = w * 0.5, centroYCanvas = h * 0.75;
                 
                 pinX = centroXCanvas - (dLon * escalaLoc / 2);
@@ -560,63 +553,98 @@
             dibujarPunto(pinX, pinY, colorNaranja, 'Pin', 'abajo');
 
             if (tipo === 'costera') {
-                // Dibujar baliza de desmarque si está activa y tiene datos
                 if (document.getElementById('checkCosteraOffset').checked) {
                     let cDist = parseFloat(document.getElementById('costeraOffsetDist').value);
                     let cRumbo = parseFloat(document.getElementById('costeraOffsetRumbo').value);
                     if (!isNaN(cDist) && !isNaN(cRumbo)) {
-                        // Proyección proporcional basada en rumbo y distancia respecto al pin
                         let rad = (cRumbo - 90) * Math.PI / 180;
-                        let distPx = cDist * 60; // Escala visual aproximada
+                        let distPx = cDist * 60;
                         let desmX = pinX + Math.cos(rad) * distPx;
                         let desmY = pinY + Math.sin(rad) * distPx;
                         dibujarPunto(desmX, desmY, '#22C55E', 'Desmarque', 'arriba');
                     }
                 }
 
-                // Dibujar waypoints costeros según sus coordenadas relativas
                 waypointsCosteros.forEach((wp, index) => {
                     let latVal = parseFloat(wp.lat);
                     let lonVal = parseFloat(wp.lon);
+                    
+                    let wpX, wpY;
                     if (!isNaN(latVal) && !isNaN(lonVal)) {
                         if (wp.latHem === 'S') latVal = -latVal;
                         if (wp.lonHem === 'W') lonVal = -lonVal;
 
-                        // Posicionamiento relativo al punto de referencia de salida
+                        let refLat = puntosGPS && puntosGPS.pin ? puntosGPS.pin.lat : 40.0;
+                        let refLon = puntosGPS && puntosGPS.pin ? puntosGPS.pin.lon : 0.0;
                         let diffLat = latVal - refLat;
                         let diffLon = lonVal - refLon;
                         let escalaWp = 120000;
 
-                        let wpX = (w * 0.5) + (diffLon * escalaWp);
-                        let wpY = (h * 0.5) - (diffLat * escalaWp);
-
-                        dibujarPunto(wpX, wpY, colorNaranja, wp.nombre || `WP ${index+1}`, 'arriba');
+                        wpX = (w * 0.5) + (diffLon * escalaWp);
+                        wpY = (h * 0.5) - (diffLat * escalaWp);
+                    } else {
+                        wpX = w * (0.3 + (index * 0.25) % 0.6);
+                        wpY = h * (0.25 + (index * 0.15));
                     }
+
+                    dibujarPunto(wpX, wpY, colorNaranja, wp.nombre || `WP ${index+1}`, 'arriba');
                 });
                 return;
             }
 
+            // Parámetros comunes de viento y distancia
+            const ejeVientoVal = parseFloat(document.getElementById('ejeViento').value) || 0;
+            const distBarloVal = parseFloat(document.getElementById('distanciaBarlo').value) || 1.0;
+            const centroSalX = (comiteX + pinX) / 2;
+            const centroSalY = (comiteY + pinY) / 2;
+
             if (tipo === 'bastones') {
                 const hayOffset = document.getElementById('checkOffset').checked;
-                let barloX = hayOffset ? (comiteX + pinX)/2 + 25 : (comiteX + pinX)/2;
-                let barloY = h * 0.25;
+                // Escala estimada en píxeles basada en la distancia introducida (ej. 1 NM = 130px)
+                let radioPx = distBarloVal * 130;
+                let radViento = (ejeVientoVal - 90) * Math.PI / 180;
+                
+                let barloX = centroSalX + Math.cos(radViento) * radioPx;
+                let barloY = centroSalY + Math.sin(radViento) * radioPx;
                 
                 if (hayOffset) {
-                    dibujarPunto((comiteX + pinX)/2 - 35, barloY, colorNaranja, 'Offset (1a)', 'arriba-izq');
+                    dibujarPunto(barloX - 35, barloY - 15, colorNaranja, 'Offset (1a)', 'arriba-izq');
                 }
 
                 dibujarPunto(barloX, barloY, colorNaranja, 'Baliza 1', hayOffset ? 'arriba-der' : 'arriba');
 
                 if (document.getElementById('checkPuertas').checked) {
-                    let centroSalX = (comiteX + pinX) / 2;
-                    let centroSalY = (comiteY + pinY) / 2;
                     dibujarPunto(centroSalX - 35, centroSalY - 40, '#22C55E', 'Puerta 2s', 'abajo');
                     dibujarPunto(centroSalX + 35, centroSalY - 40, '#22C55E', 'Puerta 2p', 'abajo');
                 }
             } else if (tipo === 'triangulo') {
-                let barloX = (comiteX + pinX) / 2, barloY = h * 0.25;
-                let reachX = barloX - 70, reachY = h * 0.55;
+                // Cálculo trigonométrico correcto para triángulo equilátero en el canvas
+                let radioPx = distBarloVal * 130;
+                let radViento = (ejeVientoVal - 90) * Math.PI / 180;
                 
+                // Baliza 1 (Barlovento)
+                let barloX = centroSalX + Math.cos(radViento) * radioPx;
+                let barloY = centroSalY + Math.sin(radViento) * radioPx;
+
+                // Baliza 2 (Reach) situada de forma equidistante según el ángulo de apertura (por defecto 120°)
+                let modoTri = document.getElementById('modoTriangulo').value;
+                let anguloApertura = modoTri === 'manual' ? (parseFloat(document.getElementById('triAnguloManual').value) || 120) : 120;
+                let anguloReachDeg = ejeVientoVal + anguloApertura;
+                let radReach = (anguloReachDeg - 90) * Math.PI / 180;
+
+                let reachX = barloX + Math.cos(radReach) * radioPx;
+                let reachY = barloY + Math.sin(radReach) * radioPx;
+
+                // Dibujar líneas del triángulo equilátero
+                ctx.beginPath();
+                ctx.moveTo(centroSalX, centroSalY);
+                ctx.lineTo(barloX, barloY);
+                ctx.lineTo(reachX, reachY);
+                ctx.closePath();
+                ctx.strokeStyle = '#CBD5E1';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+
                 dibujarPunto(barloX, barloY, colorNaranja, 'Baliza 1', 'arriba');
                 dibujarPunto(reachX, reachY, colorNaranja, 'Baliza 2', 'izquierda');
             }
