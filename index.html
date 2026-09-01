@@ -316,9 +316,9 @@
     </div>
 
     <!-- 4. DIAGRAMA GRÁFICO Y EXPORTACIÓN -->
-    <div class="card">
-        <div class="card-title">4. Campo dinámico y descargas</div>
-        <div class="canvas-container">
+    <div class="card" id="seccionGrafico">
+        <div class="card-title" id="tituloGrafico">4. Campo esquemático y descargas</div>
+        <div class="canvas-container" id="contenedorCanvas">
             <canvas id="canvasCampo"></canvas>
         </div>
         <button class="btn btn-gpx" onclick="exportarGPX()">💾 Descargar Archivo .GPX (Plotter/App)</button>
@@ -356,6 +356,12 @@
             document.getElementById('opcionesTriangulo').classList.toggle('hidden', tipo !== 'triangulo');
             document.getElementById('opcionesCostera').classList.toggle('hidden', tipo !== 'costera');
             document.getElementById('parametrosGenerales').classList.toggle('hidden', tipo === 'costera');
+            
+            // Ocultar gráfico completamente en costera
+            const esCostera = (tipo === 'costera');
+            document.getElementById('contenedorCanvas').classList.toggle('hidden', esCostera);
+            document.getElementById('tituloGrafico').innerText = esCostera ? '4. Archivos de exportación' : '4. Campo esquemático y descargas';
+
             actualizarDibujo();
         }
 
@@ -398,7 +404,6 @@
         function agregarWaypointCostero() {
             waypointsCosteros.push({ nombre: `Waypoint ${waypointsCosteros.length + 1}`, lat: '', lon: '', latHem: 'N', lonHem: 'E' });
             renderizarWaypointsCosteros();
-            actualizarDibujo();
         }
 
         function eliminarWaypointCostero(index) {
@@ -408,12 +413,10 @@
             } else {
                 renderizarWaypointsCosteros();
             }
-            actualizarDibujo();
         }
 
         function actualizarDatoWaypoint(index, campo, valor) {
             waypointsCosteros[index][campo] = valor;
-            actualizarDibujo();
         }
 
         function renderizarWaypointsCosteros() {
@@ -522,11 +525,6 @@
             const tipo = document.getElementById('raceType').value;
             let listaPuntos = [];
 
-            if (puntosGPS.comite && puntosGPS.pin) {
-                listaPuntos.push({ nombre: 'Comite', lat: puntosGPS.comite.lat, lon: puntosGPS.comite.lon });
-                listaPuntos.push({ nombre: 'Pin', lat: puntosGPS.pin.lat, lon: puntosGPS.pin.lon });
-            }
-
             if (tipo === 'costera') {
                 let refLat = puntosGPS && puntosGPS.comite ? puntosGPS.comite.lat : 39.4;
                 let refLon = puntosGPS && puntosGPS.comite ? puntosGPS.comite.lon : -0.3;
@@ -549,13 +547,15 @@
                         listaPuntos.push({ nombre: wp.nombre || 'Waypoint', lat: latVal, lon: lonVal });
                     }
                 });
-
             } else {
                 if (!puntosGPS.comite || !puntosGPS.pin) return null;
 
                 const ejeViento = parseFloat(document.getElementById('ejeViento').value);
                 const distancia = parseFloat(document.getElementById('distanciaBarlo').value);
                 if (isNaN(ejeViento) || isNaN(distancia)) return null;
+
+                listaPuntos.push({ nombre: 'Comite', lat: puntosGPS.comite.lat, lon: puntosGPS.comite.lon });
+                listaPuntos.push({ nombre: 'Pin', lat: puntosGPS.pin.lat, lon: puntosGPS.pin.lon });
 
                 const centroLat = (puntosGPS.comite.lat + puntosGPS.pin.lat) / 2;
                 const centroLon = (puntosGPS.comite.lon + puntosGPS.pin.lon) / 2;
@@ -567,7 +567,7 @@
                     if (document.getElementById('checkOffset').checked) {
                         const modoOffset = document.getElementById('modoOffset').value;
                         let offDist = modoOffset === 'manual' ? (parseFloat(document.getElementById('offsetDist').value) || 0.1) : 0.1;
-                        let offAng = modoOffset === 'manual' ? (ejeViento - (parseFloat(document.getElementById('offsetAng').value) || 90)) : (ejeViento - 90);
+                        let offAng = ejeViento - 90; // Horizontal izquierda
                         
                         const desm = calcularCoordenadaDestino(barlo.lat, barlo.lon, offDist, offAng);
                         listaPuntos.push({ nombre: 'Offset (1a)', lat: desm.lat, lon: desm.lon });
@@ -575,14 +575,11 @@
 
                     if (document.getElementById('checkPuertas').checked) {
                         const modoPuertas = document.getElementById('modoPuertas').value;
-                        let puertaDistNM = modoPuertas === 'manual' ? (parseFloat(document.getElementById('puertasDistLinea').value) || 0.2) : 0.2;
                         let anchoMetros = modoPuertas === 'manual' ? (parseFloat(document.getElementById('puertasAncho').value) || 50) : 50;
-                        
-                        const centroSotavento = calcularCoordenadaDestino(centroLat, centroLon, distancia - puertaDistNM, ejeViento);
                         const anchoNM = anchoMetros / 1852;
                         
-                        const puerta2S = calcularCoordenadaDestino(centroSotavento.lat, centroSotavento.lon, anchoNM / 2, ejeViento - 90);
-                        const puerta2P = calcularCoordenadaDestino(centroSotavento.lat, centroSotavento.lon, anchoNM / 2, ejeViento + 90);
+                        const puerta2S = calcularCoordenadaDestino(centroLat, centroLon, anchoNM / 2, ejeViento - 90);
+                        const puerta2P = calcularCoordenadaDestino(centroLat, centroLon, anchoNM / 2, ejeViento + 90);
 
                         listaPuntos.push({ nombre: 'Puerta 2s', lat: puerta2S.lat, lon: puerta2S.lon });
                         listaPuntos.push({ nombre: 'Puerta 2p', lat: puerta2P.lat, lon: puerta2P.lon });
@@ -590,8 +587,7 @@
 
                 } else if (tipo === 'triangulo') {
                     const barlo = calcularCoordenadaDestino(centroLat, centroLon, distancia, ejeViento);
-                    const modoTri = document.getElementById('modoTriangulo').value;
-                    let anguloReach = modoTri === 'manual' ? (ejeViento + (parseFloat(document.getElementById('triAnguloManual').value) || 120)) : (ejeViento + 120);
+                    let anguloReach = ejeViento + 120; // Triángulo equilátero con vértice a la izquierda
                     
                     const reach = calcularCoordenadaDestino(barlo.lat, barlo.lon, distancia, anguloReach);
                     listaPuntos.push({ nombre: 'Baliza 1', lat: barlo.lat, lon: barlo.lon });
@@ -602,111 +598,86 @@
             return listaPuntos.length > 0 ? listaPuntos : null;
         }
 
-        // MOTOR DE RENDERIZADO CON ESCALA Y ENCUADRE DINÁMICO (BOUNDING BOX)
+        // MOTOR DE RENDERIZADO ESQUEMÁTICO FIJO (CONFORME A ESQUEMAS TIPO)
         function actualizarDibujo() {
+            const tipo = document.getElementById('raceType').value;
+            if (tipo === 'costera') return; // No se dibuja gráfico en costera
+
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             const w = canvas.width, h = canvas.height;
-            const tipo = document.getElementById('raceType').value;
 
-            // Recopilar todos los puntos que deben formar parte del gráfico
-            let puntos = obtenerPuntosCalculados();
+            const colorAzul = '#1E3A8A';
+            const colorNaranja = '#F97316';
+            const colorVerde = '#22C55E';
 
-            // Si faltan datos base en bastones/triángulo, pintamos un esquema por defecto seguro
-            if (!puntos || puntos.length === 0) {
-                puntos = [
-                    { nombre: 'Comite', lat: 39.402, lon: -0.320 },
-                    { nombre: 'Pin', lat: 39.400, lon: -0.324 }
-                ];
-                if (tipo !== 'costera') {
-                    puntos.push({ nombre: 'Baliza 1', lat: 39.420, lon: -0.322 });
-                }
-            }
+            // Coordenadas fijas esquemáticas del lienzo
+            let pinX = w * 0.30, pinY = h * 0.75;
+            let comiteX = w * 0.70, comiteY = h * 0.75;
+            let centroX = (pinX + comiteX) / 2;
+            let centroY = pinY;
 
-            // Calcular los límites (Bounding Box) de todas las coordenadas geográficas
-            let minLat = Math.min(...puntos.map(p => p.lat));
-            let maxLat = Math.max(...puntos.map(p => p.lat));
-            let minLon = Math.min(...puntos.map(p => p.lon));
-            let maxLon = Math.max(...puntos.map(p => p.lon));
+            // 1. Línea de salida horizontal Pin - Comité
+            ctx.beginPath();
+            ctx.moveTo(pinX, pinY);
+            ctx.lineTo(comiteX, comiteY);
+            ctx.strokeStyle = colorAzul;
+            ctx.lineWidth = 3;
+            ctx.setLineDash([4, 4]);
+            ctx.stroke();
+            ctx.setLineDash([]);
 
-            // Evitar división por cero si todos los puntos caen exactamente en el mismo sitio
-            if (minLat === maxLat) { minLat -= 0.001; maxLat += 0.001; }
-            if (minLon === maxLon) { minLon -= 0.001; maxLon += 0.001; }
+            dibujarPuntoConNombre(pinX, pinY, colorNaranja, 'Pin', 'abajo');
+            dibujarPuntoConNombre(comiteX, comiteY, colorAzul, 'Comite', 'abajo');
 
-            // Añadir un margen del 15% alrededor del canvas para que los nombres de las balizas nunca se corten
-            const margenPx = 50;
-            const drawW = w - (margenPx * 2);
-            const drawH = h - (margenPx * 2);
+            if (tipo === 'bastones') {
+                let barloX = centroX;
+                let barloY = h * 0.25;
 
-            let latSpan = maxLat - minLat;
-            let lonSpan = maxLon - minLon;
-
-            // Función de transformación de coordenadas geográficas a píxeles del canvas ajustados
-            function geoToPixel(lat, lon) {
-                // Invertimos latitud porque el eje Y en canvas crece hacia abajo
-                let x = margenPx + ((lon - minLon) / lonSpan) * drawW;
-                let y = margenPx + ((maxLat - lat) / latSpan) * drawH;
-                return { x, y };
-            }
-
-            // 1. Dibujar líneas de conexión del campo según la regata
-            const comitePt = puntos.find(p => p.nombre === 'Comite');
-            const pinPt = puntos.find(p => p.nombre === 'Pin');
-            const barloPt = puntos.find(p => p.nombre === 'Baliza 1');
-            const reachPt = puntos.find(p => p.nombre === 'Baliza 2');
-            const centroLat = comitePt && pinPt ? (comitePt.lat + pinPt.lat) / 2 : null;
-            const centroLon = comitePt && pinPt ? (comitePt.lon + pinPt.lon) / 2 : null;
-
-            if (comitePt && pinPt) {
-                let p1 = geoToPixel(pinPt.lat, pinPt.lon);
-                let p2 = geoToPixel(comitePt.lat, comitePt.lon);
+                // Eje vertical Baliza 1
                 ctx.beginPath();
-                ctx.moveTo(p1.x, p1.y);
-                ctx.lineTo(p2.x, p2.y);
-                ctx.strokeStyle = '#1E3A8A';
-                ctx.lineWidth = 3;
-                ctx.setLineDash([4, 4]);
-                ctx.stroke();
-                ctx.setLineDash([]);
-            }
-
-            if (tipo === 'bastones' && barloPt && centroLat !== null) {
-                let pCentro = geoToPixel(centroLat, centroLon);
-                let pBarlo = geoToPixel(barloPt.lat, barloPt.lon);
-                ctx.beginPath();
-                ctx.moveTo(pCentro.x, pCentro.y);
-                ctx.lineTo(pBarlo.x, pBarlo.y);
+                ctx.moveTo(centroX, centroY);
+                ctx.lineTo(barloX, barloY);
                 ctx.strokeStyle = '#CBD5E1';
                 ctx.lineWidth = 1.5;
                 ctx.stroke();
-            } else if (tipo === 'triangulo' && barloPt && reachPt && centroLat !== null) {
-                let pCentro = geoToPixel(centroLat, centroLon);
-                let pBarlo = geoToPixel(barloPt.lat, barloPt.lon);
-                let pReach = geoToPixel(reachPt.lat, reachPt.lon);
+
+                const hayOffset = document.getElementById('checkOffset').checked;
+                if (hayOffset) {
+                    let offsetX = barloX - 45; // Offset horizontal a la izquierda
+                    let offsetY = barloY;
+                    dibujarPuntoConNombre(offsetX, offsetY, colorNaranja, 'Offset (1a)', 'arriba');
+                }
+
+                dibujarPuntoConNombre(barloX, barloY, colorNaranja, 'Baliza 1', hayOffset ? 'derecha' : 'arriba');
+
+                if (document.getElementById('checkPuertas').checked) {
+                    let puerta2SX = centroX - 35;
+                    let puerta2SY = centroY;
+                    let puerta2PX = centroX + 35;
+                    let puerta2PY = centroY;
+
+                    dibujarPuntoConNombre(puerta2SX, puerta2SY, colorVerde, 'Puerta 2s', 'arriba');
+                    dibujarPuntoConNombre(puerta2PX, puerta2PY, colorVerde, 'Puerta 2p', 'arriba');
+                }
+
+            } else if (tipo === 'triangulo') {
+                let barloX = centroX;
+                let barloY = h * 0.25;
+                let reachX = centroX - 80; // Vértice a la izquierda (triángulo equilátero esquemático)
+                let reachY = h * 0.50;
+
                 ctx.beginPath();
-                ctx.moveTo(pCentro.x, pCentro.y);
-                ctx.lineTo(pBarlo.x, pBarlo.y);
-                ctx.lineTo(pReach.x, pReach.y);
+                ctx.moveTo(centroX, centroY);
+                ctx.lineTo(barloX, barloY);
+                ctx.lineTo(reachX, reachY);
                 ctx.closePath();
                 ctx.strokeStyle = '#CBD5E1';
                 ctx.lineWidth = 1.5;
                 ctx.stroke();
+
+                dibujarPuntoConNombre(barloX, barloY, colorNaranja, 'Baliza 1', 'arriba');
+                dibujarPuntoConNombre(reachX, reachY, colorNaranja, 'Baliza 2', 'izquierda');
             }
-
-            // 2. Pintar cada punto dinámicamente con su nombre asegurando que no rebase el cuadro
-            puntos.forEach(p => {
-                let coords = geoToPixel(p.lat, p.lon);
-                let color = '#F97316';
-                if (p.nombre === 'Comite') color = '#1E3A8A';
-                else if (p.nombre.includes('Puerta') || p.nombre === 'Desmarque') color = '#22C55E';
-
-                // Determinar la posición óptima del texto para que no se salga de los márgenes del canvas
-                let posicionTexto = 'arriba';
-                if (coords.y < 30) posicionTexto = 'abajo';
-                if (coords.x < 50) posicionTexto = 'derecha';
-                if (coords.x > w - 50) posicionTexto = 'izquierda';
-
-                dibujarPuntoConNombre(coords.x, coords.y, color, p.nombre, posicionTexto);
-            });
         }
 
         function dibujarPuntoConNombre(x, y, color, texto, posicion) {
@@ -721,18 +692,19 @@
             ctx.font = "bold 11px sans-serif";
             ctx.fillStyle = "#1E293B";
 
+            // Control estricto de textos para que no salgan del cuadro ni se solapen
             if (posicion === 'arriba') {
                 ctx.textAlign = "center";
-                ctx.fillText(texto, x, y - 10);
+                ctx.fillText(texto, x, Math.max(12, y - 10));
             } else if (posicion === 'abajo') {
                 ctx.textAlign = "center";
-                ctx.fillText(texto, x, y + 18);
+                ctx.fillText(texto, x, Math.min(canvas.height - 6, y + 18));
             } else if (posicion === 'derecha') {
                 ctx.textAlign = "left";
-                ctx.fillText(texto, x + 10, y + 4);
+                ctx.fillText(texto, Math.min(canvas.width - 50, x + 10), y + 4);
             } else if (posicion === 'izquierda') {
                 ctx.textAlign = "right";
-                ctx.fillText(texto, x - 10, y + 4);
+                ctx.fillText(texto, Math.max(50, x - 10), y + 4);
             }
             ctx.textAlign = "left";
         }
@@ -742,7 +714,7 @@
             const puntos = obtenerPuntosCalculados();
 
             if (!puntos) {
-                alert("Faltan coordenadas o datos necesarios para generar el archivo.");
+                alert("Faltan coordenadas de Comité y Pin o parámetros necesarios.");
                 return;
             }
 
@@ -777,7 +749,7 @@
             const puntos = obtenerPuntosCalculados();
 
             if (!puntos) {
-                alert("Faltan coordenadas o datos necesarios para generar el archivo.");
+                alert("Faltan coordenadas de Comité y Pin o parámetros necesarios.");
                 return;
             }
 
