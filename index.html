@@ -176,6 +176,7 @@
         <select id="raceType" onchange="cambiarTipoRegata()">
             <option value="bastones">Bastones (Barlovento - Sotavento)</option>
             <option value="triangulo">Triángulo</option>
+            <option value="triangulo_olimpico">Triángulo olímpico</option>
             <option value="costera">Costera</option>
         </select>
     </div>
@@ -239,6 +240,11 @@
 
         <!-- BASTONES -->
         <div id="opcionesBastones">
+            <div class="form-group">
+                <label>¿Cuántas mangas tiene la prueba?</label>
+                <input type="number" id="numMangas" value="" placeholder="Ej: 4" oninput="actualizarDibujo()">
+            </div>
+
             <div class="form-group" style="display: flex; align-items: center; gap: 8px;">
                 <input type="checkbox" id="checkOffset" style="width: auto;" onchange="toggleOffset()">
                 <label for="checkOffset" style="margin-bottom:0; cursor:pointer;">¿Hay baliza de offset?</label>
@@ -276,7 +282,7 @@
             </div>
         </div>
 
-        <!-- TRIÁNGULO -->
+        <!-- TRIÁNGULO Y TRIÁNGULO OLÍMPICO -->
         <div id="opcionesTriangulo" class="hidden">
             <div class="form-group">
                 <label>Geometría del triángulo:</label>
@@ -352,8 +358,10 @@
 
         function cambiarTipoRegata() {
             const tipo = document.getElementById('raceType').value;
+            const esTrianguloGenerico = (tipo === 'triangulo' || tipo === 'triangulo_olimpico');
+            
             document.getElementById('opcionesBastones').classList.toggle('hidden', tipo !== 'bastones');
-            document.getElementById('opcionesTriangulo').classList.toggle('hidden', tipo !== 'triangulo');
+            document.getElementById('opcionesTriangulo').classList.toggle('hidden', !esTrianguloGenerico);
             document.getElementById('opcionesCostera').classList.toggle('hidden', tipo !== 'costera');
             document.getElementById('parametrosGenerales').classList.toggle('hidden', tipo === 'costera');
             
@@ -586,7 +594,7 @@
                         listaPuntos.push({ nombre: 'Puerta 2p', lat: puerta2P.lat, lon: puerta2P.lon });
                     }
 
-                } else if (tipo === 'triangulo') {
+                } else if (tipo === 'triangulo' || tipo === 'triangulo_olimpico') {
                     const barlo = calcularCoordenadaDestino(centroLat, centroLon, distancia, ejeViento);
                     let anguloReach = ejeViento + 120;
                     
@@ -649,7 +657,6 @@
                 dibujarPuntoConNombre(barloX, barloY, colorNaranja, 'Baliza 1', hayOffset ? 'derecha' : 'arriba');
 
                 if (document.getElementById('checkPuertas').checked) {
-                    // Puertas situadas un poco más arriba de la línea de salida (sin superponerse)
                     let puerta2SX = centroX - 35;
                     let puerta2SY = h * 0.60;
                     let puerta2PX = centroX + 35;
@@ -659,7 +666,7 @@
                     dibujarPuntoConNombre(puerta2PX, puerta2PY, colorVerde, 'Puerta 2p', 'arriba');
                 }
 
-            } else if (tipo === 'triangulo') {
+            } else if (tipo === 'triangulo' || tipo === 'triangulo_olimpico') {
                 let barloX = centroX;
                 let barloY = h * 0.25;
                 let reachX = centroX - 80;
