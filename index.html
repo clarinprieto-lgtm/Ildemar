@@ -242,7 +242,7 @@
         <div id="opcionesBastones">
             <div class="form-group">
                 <label>¿Cuántas mangas tiene la prueba?</label>
-                <input type="number" id="numMangas" value="" placeholder="Ej: 4" oninput="actualizarDibujo()">
+                <input type="number" id="numMangas" value="" placeholder="Ej: 2" oninput="actualizarDibujo()">
             </div>
 
             <div class="form-group" style="display: flex; align-items: center; gap: 8px;">
@@ -533,6 +533,13 @@
             let listaPuntos = [];
 
             if (tipo === 'costera') {
+                if (puntosGPS.pin) {
+                    listaPuntos.push({ nombre: 'Pin', lat: puntosGPS.pin.lat, lon: puntosGPS.pin.lon });
+                }
+                if (puntosGPS.comite) {
+                    listaPuntos.push({ nombre: 'Comite', lat: puntosGPS.comite.lat, lon: puntosGPS.comite.lon });
+                }
+
                 let refLat = puntosGPS && puntosGPS.comite ? puntosGPS.comite.lat : 39.4;
                 let refLon = puntosGPS && puntosGPS.comite ? puntosGPS.comite.lon : -0.3;
 
@@ -554,6 +561,11 @@
                         listaPuntos.push({ nombre: wp.nombre || 'Waypoint', lat: latVal, lon: lonVal });
                     }
                 });
+
+                if (puntosGPS.comite) {
+                    listaPuntos.push({ nombre: 'Comite', lat: puntosGPS.comite.lat, lon: puntosGPS.comite.lon });
+                }
+
             } else {
                 if (!puntosGPS.comite || !puntosGPS.pin) return null;
 
@@ -561,25 +573,26 @@
                 const distancia = parseFloat(document.getElementById('distanciaBarlo').value);
                 if (isNaN(ejeViento) || isNaN(distancia)) return null;
 
-                listaPuntos.push({ nombre: 'Comite', lat: puntosGPS.comite.lat, lon: puntosGPS.comite.lon });
-                listaPuntos.push({ nombre: 'Pin', lat: puntosGPS.pin.lat, lon: puntosGPS.pin.lon });
-
                 const centroLat = (puntosGPS.comite.lat + puntosGPS.pin.lat) / 2;
                 const centroLon = (puntosGPS.comite.lon + puntosGPS.pin.lon) / 2;
 
                 if (tipo === 'bastones') {
+                    let numMangas = parseInt(document.getElementById('numMangas').value) || 1;
+
+                    listaPuntos.push({ nombre: 'Pin', lat: puntosGPS.pin.lat, lon: puntosGPS.pin.lon });
+                    listaPuntos.push({ nombre: 'Comite', lat: puntosGPS.comite.lat, lon: puntosGPS.comite.lon });
+
                     const barlo = calcularCoordenadaDestino(centroLat, centroLon, distancia, ejeViento);
-                    listaPuntos.push({ nombre: 'Baliza 1', lat: barlo.lat, lon: barlo.lon });
                     
+                    let desm = null;
                     if (document.getElementById('checkOffset').checked) {
                         const modoOffset = document.getElementById('modoOffset').value;
                         let offDist = modoOffset === 'manual' ? (parseFloat(document.getElementById('offsetDist').value) || 0.1) : 0.1;
                         let offAng = ejeViento - 90;
-                        
-                        const desm = calcularCoordenadaDestino(barlo.lat, barlo.lon, offDist, offAng);
-                        listaPuntos.push({ nombre: 'Offset (1a)', lat: desm.lat, lon: desm.lon });
+                        desm = calcularCoordenadaDestino(barlo.lat, barlo.lon, offDist, offAng);
                     }
 
+                    let puerta2P = null;
                     if (document.getElementById('checkPuertas').checked) {
                         const modoPuertas = document.getElementById('modoPuertas').value;
                         let distLinea = modoPuertas === 'manual' ? (parseFloat(document.getElementById('puertasDistLinea').value) || 0.2) : 0.2;
@@ -587,20 +600,41 @@
                         const anchoNM = anchoMetros / 1852;
                         
                         const centroPuerta = calcularCoordenadaDestino(centroLat, centroLon, distLinea, ejeViento);
-                        const puerta2S = calcularCoordenadaDestino(centroPuerta.lat, centroPuerta.lon, anchoNM / 2, ejeViento - 90);
-                        const puerta2P = calcularCoordenadaDestino(centroPuerta.lat, centroPuerta.lon, anchoNM / 2, ejeViento + 90);
-
-                        listaPuntos.push({ nombre: 'Puerta 2s', lat: puerta2S.lat, lon: puerta2S.lon });
-                        listaPuntos.push({ nombre: 'Puerta 2p', lat: puerta2P.lat, lon: puerta2P.lon });
+                        puerta2P = calcularCoordenadaDestino(centroPuerta.lat, centroPuerta.lon, anchoNM / 2, ejeViento + 90);
                     }
+
+                    for (let i = 1; i <= numMangas; i++) {
+                        listaPuntos.push({ nombre: 'Baliza 1', lat: barlo.lat, lon: barlo.lon });
+                        if (document.getElementById('checkOffset').checked && desm) {
+                            listaPuntos.push({ nombre: 'Offset', lat: desm.lat, lon: desm.lon });
+                        }
+                        if (i < numMangas) {
+                            if (document.getElementById('checkPuertas').checked && puerta2P) {
+                                listaPuntos.push({ nombre: 'Puerta 2p', lat: puerta2P.lat, lon: puerta2P.lon });
+                            } else {
+                                listaPuntos.push({ nombre: 'Pin', lat: puntosGPS.pin.lat, lon: puntosGPS.pin.lon });
+                            }
+                        }
+                    }
+                    listaPuntos.push({ nombre: 'Comite', lat: puntosGPS.comite.lat, lon: puntosGPS.comite.lon });
 
                 } else if (tipo === 'triangulo' || tipo === 'triangulo_olimpico') {
                     const barlo = calcularCoordenadaDestino(centroLat, centroLon, distancia, ejeViento);
                     let anguloReach = ejeViento + 120;
-                    
                     const reach = calcularCoordenadaDestino(barlo.lat, barlo.lon, distancia, anguloReach);
+
+                    listaPuntos.push({ nombre: 'Pin', lat: puntosGPS.pin.lat, lon: puntosGPS.pin.lon });
+                    listaPuntos.push({ nombre: 'Comite', lat: puntosGPS.comite.lat, lon: puntosGPS.comite.lon });
                     listaPuntos.push({ nombre: 'Baliza 1', lat: barlo.lat, lon: barlo.lon });
                     listaPuntos.push({ nombre: 'Baliza 2', lat: reach.lat, lon: reach.lon });
+
+                    if (tipo === 'triangulo') {
+                        listaPuntos.push({ nombre: 'Comite', lat: puntosGPS.comite.lat, lon: puntosGPS.comite.lon });
+                    } else if (tipo === 'triangulo_olimpico') {
+                        listaPuntos.push({ nombre: 'Pin', lat: puntosGPS.pin.lat, lon: puntosGPS.pin.lon });
+                        listaPuntos.push({ nombre: 'Baliza 1', lat: barlo.lat, lon: barlo.lon });
+                        listaPuntos.push({ nombre: 'Comite', lat: puntosGPS.comite.lat, lon: puntosGPS.comite.lon });
+                    }
                 }
             }
 
@@ -623,7 +657,6 @@
             let centroX = (pinX + comiteX) / 2;
             let centroY = pinY;
 
-            // Línea de salida horizontal
             ctx.beginPath();
             ctx.moveTo(pinX, pinY);
             ctx.lineTo(comiteX, comiteY);
@@ -651,7 +684,7 @@
                 if (hayOffset) {
                     let offsetX = barloX - 45;
                     let offsetY = barloY;
-                    dibujarPuntoConNombre(offsetX, offsetY, colorNaranja, 'Offset (1a)', 'arriba');
+                    dibujarPuntoConNombre(offsetX, offsetY, colorNaranja, 'Offset', 'arriba');
                 }
 
                 dibujarPuntoConNombre(barloX, barloY, colorNaranja, 'Baliza 1', hayOffset ? 'derecha' : 'arriba');
