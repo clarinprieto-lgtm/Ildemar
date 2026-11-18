@@ -586,17 +586,17 @@
             return { lat: lat2 * 180 / Math.PI, lon: lon2 * 180 / Math.PI };
         }
 
-        // Obtener puntos completos para cálculos internos y CSV
+        // Obtener puntos completos para cálculos internos (orden secuencial de la regata)
         function obtenerPuntosCalculados() {
             const tipo = document.getElementById('raceType').value;
             let listaPuntos = [];
 
             if (tipo === 'costera') {
                 if (puntosGPS.pin) {
-                    listaPuntos.push({ nombre: 'Pin', lat: puntosGPS.pin.lat, lon: puntosGPS.pin.lon });
+                    listaPuntos.push({ nombre: 'PIN', lat: puntosGPS.pin.lat, lon: puntosGPS.pin.lon });
                 }
                 if (puntosGPS.comite) {
-                    listaPuntos.push({ nombre: 'Comite', lat: puntosGPS.comite.lat, lon: puntosGPS.comite.lon });
+                    listaPuntos.push({ nombre: 'COMITE', lat: puntosGPS.comite.lat, lon: puntosGPS.comite.lon });
                 }
 
                 let refLat = puntosGPS && puntosGPS.comite ? puntosGPS.comite.lat : 39.4;
@@ -607,7 +607,7 @@
                     let cRumbo = parseFloat(document.getElementById('costeraOffsetRumbo').value);
                     if (!isNaN(cDist) && !isNaN(cRumbo)) {
                         const offCostera = calcularCoordenadaDestino(refLat, refLon, cDist, cRumbo);
-                        listaPuntos.push({ nombre: 'Desmarque', lat: offCostera.lat, lon: offCostera.lon });
+                        listaPuntos.push({ nombre: 'DESMARQUE', lat: offCostera.lat, lon: offCostera.lon });
                     }
                 }
 
@@ -615,12 +615,13 @@
                     let latVal = dmToDecimal(wp.latDeg, wp.latMin, wp.latHem);
                     let lonVal = dmToDecimal(wp.lonDeg, wp.lonMin, wp.lonHem);
                     if (!isNaN(latVal) && !isNaN(lonVal) && (wp.latDeg !== '' || wp.lonDeg !== '')) {
-                        listaPuntos.push({ nombre: wp.nombre || 'Waypoint', lat: latVal, lon: lonVal });
+                        let cleanName = (wp.nombre || 'WAYPOINT').normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+                        listaPuntos.push({ nombre: cleanName, lat: latVal, lon: lonVal });
                     }
                 });
 
                 if (puntosGPS.comite) {
-                    listaPuntos.push({ nombre: 'Comite', lat: puntosGPS.comite.lat, lon: puntosGPS.comite.lon });
+                    listaPuntos.push({ nombre: 'COMITE', lat: puntosGPS.comite.lat, lon: puntosGPS.comite.lon });
                 }
 
             } else {
@@ -636,8 +637,8 @@
                 if (tipo === 'bastones') {
                     let numMangas = parseInt(document.getElementById('numMangas').value) || 1;
 
-                    listaPuntos.push({ nombre: 'Pin', lat: puntosGPS.pin.lat, lon: puntosGPS.pin.lon });
-                    listaPuntos.push({ nombre: 'Comite', lat: puntosGPS.comite.lat, lon: puntosGPS.comite.lon });
+                    listaPuntos.push({ nombre: 'PIN', lat: puntosGPS.pin.lat, lon: puntosGPS.pin.lon });
+                    listaPuntos.push({ nombre: 'COMITE', lat: puntosGPS.comite.lat, lon: puntosGPS.comite.lon });
 
                     const barlo = calcularCoordenadaDestino(centroLat, centroLon, distancia, ejeViento);
                     
@@ -650,6 +651,7 @@
                     }
 
                     let puerta2P = null;
+                    let puerta2S = null;
                     if (document.getElementById('checkPuertas').checked) {
                         const modoPuertas = document.getElementById('modoPuertas').value;
                         let distLinea = modoPuertas === 'manual' ? (parseFloat(document.getElementById('puertasDistLinea').value) || 0.2) : 0.2;
@@ -658,39 +660,41 @@
                         
                         const centroPuerta = calcularCoordenadaDestino(centroLat, centroLon, distLinea, ejeViento);
                         puerta2P = calcularCoordenadaDestino(centroPuerta.lat, centroPuerta.lon, anchoNM / 2, ejeViento + 90);
+                        puerta2S = calcularCoordenadaDestino(centroPuerta.lat, centroPuerta.lon, anchoNM / 2, ejeViento - 90);
                     }
 
                     for (let i = 1; i <= numMangas; i++) {
-                        listaPuntos.push({ nombre: 'Baliza 1', lat: barlo.lat, lon: barlo.lon });
+                        listaPuntos.push({ nombre: 'BALIZA 1', lat: barlo.lat, lon: barlo.lon });
                         if (document.getElementById('checkOffset').checked && desm) {
-                            listaPuntos.push({ nombre: 'Offset', lat: desm.lat, lon: desm.lon });
+                            listaPuntos.push({ nombre: 'OFFSET', lat: desm.lat, lon: desm.lon });
                         }
                         if (i < numMangas) {
-                            if (document.getElementById('checkPuertas').checked && puerta2P) {
-                                listaPuntos.push({ nombre: 'Puerta 2p', lat: puerta2P.lat, lon: puerta2P.lon });
+                            if (document.getElementById('checkPuertas').checked && puerta2P && puerta2S) {
+                                listaPuntos.push({ nombre: 'PUERTA 2P', lat: puerta2P.lat, lon: puerta2P.lon });
+                                listaPuntos.push({ nombre: 'PUERTA 2S', lat: puerta2S.lat, lon: puerta2S.lon });
                             } else {
-                                listaPuntos.push({ nombre: 'Pin', lat: puntosGPS.pin.lat, lon: puntosGPS.pin.lon });
+                                listaPuntos.push({ nombre: 'PIN', lat: puntosGPS.pin.lat, lon: puntosGPS.pin.lon });
                             }
                         }
                     }
-                    listaPuntos.push({ nombre: 'Comite', lat: puntosGPS.comite.lat, lon: puntosGPS.comite.lon });
+                    listaPuntos.push({ nombre: 'COMITE', lat: puntosGPS.comite.lat, lon: puntosGPS.comite.lon });
 
                 } else if (tipo === 'triangulo' || tipo === 'triangulo_olimpico') {
                     const barlo = calcularCoordenadaDestino(centroLat, centroLon, distancia, ejeViento);
-                    let anguloReach = ejeViento - 120; // Baliza 2 a la izquierda (-120º)
+                    let anguloReach = ejeViento - 120;
                     const reach = calcularCoordenadaDestino(barlo.lat, barlo.lon, distancia, anguloReach);
 
-                    listaPuntos.push({ nombre: 'Pin', lat: puntosGPS.pin.lat, lon: puntosGPS.pin.lon });
-                    listaPuntos.push({ nombre: 'Comite', lat: puntosGPS.comite.lat, lon: puntosGPS.comite.lon });
-                    listaPuntos.push({ nombre: 'Baliza 1', lat: barlo.lat, lon: barlo.lon });
-                    listaPuntos.push({ nombre: 'Baliza 2', lat: reach.lat, lon: reach.lon });
+                    listaPuntos.push({ nombre: 'PIN', lat: puntosGPS.pin.lat, lon: puntosGPS.pin.lon });
+                    listaPuntos.push({ nombre: 'COMITE', lat: puntosGPS.comite.lat, lon: puntosGPS.comite.lon });
+                    listaPuntos.push({ nombre: 'BALIZA 1', lat: barlo.lat, lon: barlo.lon });
+                    listaPuntos.push({ nombre: 'BALIZA 2', lat: reach.lat, lon: reach.lon });
 
                     if (tipo === 'triangulo') {
-                        listaPuntos.push({ nombre: 'Comite', lat: puntosGPS.comite.lat, lon: puntosGPS.comite.lon });
+                        listaPuntos.push({ nombre: 'COMITE', lat: puntosGPS.comite.lat, lon: puntosGPS.comite.lon });
                     } else if (tipo === 'triangulo_olimpico') {
-                        listaPuntos.push({ nombre: 'Pin', lat: puntosGPS.pin.lat, lon: puntosGPS.pin.lon });
-                        listaPuntos.push({ nombre: 'Baliza 1', lat: barlo.lat, lon: barlo.lon });
-                        listaPuntos.push({ nombre: 'Comite', lat: puntosGPS.comite.lat, lon: puntosGPS.comite.lon });
+                        listaPuntos.push({ nombre: 'PIN', lat: puntosGPS.pin.lat, lon: puntosGPS.pin.lon });
+                        listaPuntos.push({ nombre: 'BALIZA 1', lat: barlo.lat, lon: barlo.lon });
+                        listaPuntos.push({ nombre: 'COMITE', lat: puntosGPS.comite.lat, lon: puntosGPS.comite.lon });
                     }
                 }
             }
@@ -723,8 +727,8 @@
             ctx.stroke();
             ctx.setLineDash([]);
 
-            dibujarPuntoConNombre(pinX, pinY, colorNaranja, 'Pin', 'abajo');
-            dibujarPuntoConNombre(comiteX, comiteY, colorAzul, 'Comite', 'abajo');
+            dibujarPuntoConNombre(pinX, pinY, colorNaranja, 'PIN', 'abajo');
+            dibujarPuntoConNombre(comiteX, comiteY, colorAzul, 'COMITE', 'abajo');
 
             if (tipo === 'bastones') {
                 let barloX = centroX;
@@ -741,10 +745,10 @@
                 if (hayOffset) {
                     let offsetX = barloX - 45;
                     let offsetY = barloY;
-                    dibujarPuntoConNombre(offsetX, offsetY, colorNaranja, 'Offset', 'arriba');
+                    dibujarPuntoConNombre(offsetX, offsetY, colorNaranja, 'OFFSET', 'arriba');
                 }
 
-                dibujarPuntoConNombre(barloX, barloY, colorNaranja, 'Baliza 1', hayOffset ? 'derecha' : 'arriba');
+                dibujarPuntoConNombre(barloX, barloY, colorNaranja, 'BALIZA 1', hayOffset ? 'derecha' : 'arriba');
 
                 if (document.getElementById('checkPuertas').checked) {
                     let puerta2SX = centroX - 35;
@@ -752,14 +756,14 @@
                     let puerta2PX = centroX + 35;
                     let puerta2PY = h * 0.60;
 
-                    dibujarPuntoConNombre(puerta2SX, puerta2SY, colorVerde, 'Puerta 2s', 'arriba');
-                    dibujarPuntoConNombre(puerta2PX, puerta2PY, colorVerde, 'Puerta 2p', 'arriba');
+                    dibujarPuntoConNombre(puerta2SX, puerta2SY, colorVerde, 'PUERTA 2S', 'arriba');
+                    dibujarPuntoConNombre(puerta2PX, puerta2PY, colorVerde, 'PUERTA 2P', 'arriba');
                 }
 
             } else if (tipo === 'triangulo' || tipo === 'triangulo_olimpico') {
                 let barloX = centroX;
                 let barloY = h * 0.25;
-                let reachX = centroX - 80; // Vértice a la izquierda para triángulos
+                let reachX = centroX - 80;
                 let reachY = h * 0.50;
 
                 ctx.beginPath();
@@ -771,8 +775,8 @@
                 ctx.lineWidth = 1.5;
                 ctx.stroke();
 
-                dibujarPuntoConNombre(barloX, barloY, colorNaranja, 'Baliza 1', 'arriba');
-                dibujarPuntoConNombre(reachX, reachY, colorNaranja, 'Baliza 2', 'izquierda');
+                dibujarPuntoConNombre(barloX, barloY, colorNaranja, 'BALIZA 1', 'arriba');
+                dibujarPuntoConNombre(reachX, reachY, colorNaranja, 'BALIZA 2', 'izquierda');
             }
         }
 
@@ -813,12 +817,11 @@
                 return;
             }
 
-            // Sustituir primer punto (Pin y Comité) por "Centro Línea"
             let centroLat = (puntos[0].lat + puntos[1].lat) / 2;
             let centroLon = (puntos[0].lon + puntos[1].lon) / 2;
 
             let puntosTrack = [...puntos];
-            puntosTrack.splice(0, 2, { nombre: 'Centro Línea', lat: centroLat, lon: centroLon });
+            puntosTrack.splice(0, 2, { nombre: 'CENTRO LINEA', lat: centroLat, lon: centroLon });
 
             let gpx = `<?xml version="1.0" encoding="UTF-8"?>
 <gpx version="1.1" creator="ILDEMAR IV App" xmlns="http://www.topografix.com/GPX/1/1">
@@ -854,15 +857,25 @@
                 return;
             }
 
-            // Insertar "Centro Línea" como tercer punto extra después de Pin y Comité
+            // 1. Insertar "CENTRO LINEA" como tercer punto (extra)
             let centroLat = (puntos[0].lat + puntos[1].lat) / 2;
             let centroLon = (puntos[0].lon + puntos[1].lon) / 2;
 
             let puntosCsv = [...puntos];
-            puntosCsv.splice(2, 0, { nombre: 'Centro Línea', lat: centroLat, lon: centroLon });
+            puntosCsv.splice(2, 0, { nombre: 'CENTRO LINEA', lat: centroLat, lon: centroLon });
+
+            // 2. Filtrar para que cada waypoint único aparezca una sola vez (manteniendo el primer orden en que aparecen)
+            let vistos = new Set();
+            let puntosUnicos = puntosCsv.filter(p => {
+                if (vistos.has(p.nombre)) {
+                    return false;
+                }
+                vistos.add(p.nombre);
+                return true;
+            });
 
             let csv = "Baliza,Latitud,Longitud\n";
-            puntosCsv.forEach(p => {
+            puntosUnicos.forEach(p => {
                 csv += `"${p.nombre}",${p.lat.toFixed(6)},${p.lon.toFixed(6)}\n`;
             });
 
