@@ -141,6 +141,13 @@
             margin-bottom: 8px;
         }
 
+        .dm-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr auto;
+            gap: 4px;
+            align-items: center;
+        }
+
         .canvas-container {
             position: relative;
             width: 100%;
@@ -198,27 +205,43 @@
             </div>
         </div>
 
-        <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-gray); text-align: center; margin: 6px 0;">O introducir a mano:</div>
+        <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-gray); text-align: center; margin: 6px 0;">O introducir a mano (Grados y Minutos .000):</div>
         
         <!-- Entrada manual Comité -->
         <div class="sub-config">
             <label style="font-weight:700; color:var(--blue-dark);">Comité Manual:</label>
-            <div style="display: grid; grid-template-columns: 2fr 1fr 2fr 1fr; gap: 4px; margin-top: 4px;">
-                <input type="number" id="manualComiteLat" step="0.00001" placeholder="Lat" oninput="actualizarManual('comite')">
-                <select id="manualComiteLatHem" onchange="actualizarManual('comite')"><option value="N">N</option><option value="S">S</option></select>
-                <input type="number" id="manualComiteLon" step="0.00001" placeholder="Lon" oninput="actualizarManual('comite')">
-                <select id="manualComiteLonHem" onchange="actualizarManual('comite')"><option value="E">E</option><option value="W">W</option></select>
+            <div style="margin-bottom: 4px;"><label style="font-size:0.7rem; color:var(--text-gray);">Latitud (º, ' .000):</label>
+                <div class="dm-grid">
+                    <input type="number" id="comiteLatDeg" placeholder="º" oninput="actualizarManual('comite')">
+                    <input type="number" id="comiteLatMin" step="0.001" placeholder="'" oninput="actualizarManual('comite')">
+                    <select id="comiteLatHem" onchange="actualizarManual('comite')"><option value="N">N</option><option value="S">S</option></select>
+                </div>
+            </div>
+            <div><label style="font-size:0.7rem; color:var(--text-gray);">Longitud (º, ' .000):</label>
+                <div class="dm-grid">
+                    <input type="number" id="comiteLonDeg" placeholder="º" oninput="actualizarManual('comite')">
+                    <input type="number" id="comiteLonMin" step="0.001" placeholder="'" oninput="actualizarManual('comite')">
+                    <select id="comiteLonHem" onchange="actualizarManual('comite')"><option value="E">E</option><option value="W">W</option></select>
+                </div>
             </div>
         </div>
 
         <!-- Entrada manual Pin -->
         <div class="sub-config">
             <label style="font-weight:700; color:var(--blue-dark);">Pin Manual:</label>
-            <div style="display: grid; grid-template-columns: 2fr 1fr 2fr 1fr; gap: 4px; margin-top: 4px;">
-                <input type="number" id="manualPinLat" step="0.00001" placeholder="Lat" oninput="actualizarManual('pin')">
-                <select id="manualPinLatHem" onchange="actualizarManual('pin')"><option value="N">N</option><option value="S">S</option></select>
-                <input type="number" id="manualPinLon" step="0.00001" placeholder="Lon" oninput="actualizarManual('pin')">
-                <select id="manualPinLonHem" onchange="actualizarManual('pin')"><option value="E">E</option><option value="W">W</option></select>
+            <div style="margin-bottom: 4px;"><label style="font-size:0.7rem; color:var(--text-gray);">Latitud (º, ' .000):</label>
+                <div class="dm-grid">
+                    <input type="number" id="pinLatDeg" placeholder="º" oninput="actualizarManual('pin')">
+                    <input type="number" id="pinLatMin" step="0.001" placeholder="'" oninput="actualizarManual('pin')">
+                    <select id="pinLatHem" onchange="actualizarManual('pin')"><option value="N">N</option><option value="S">S</option></select>
+                </div>
+            </div>
+            <div><label style="font-size:0.7rem; color:var(--text-gray);">Longitud (º, ' .000):</label>
+                <div class="dm-grid">
+                    <input type="number" id="pinLonDeg" placeholder="º" oninput="actualizarManual('pin')">
+                    <input type="number" id="pinLonMin" step="0.001" placeholder="'" oninput="actualizarManual('pin')">
+                    <select id="pinLonHem" onchange="actualizarManual('pin')"><option value="E">E</option><option value="W">W</option></select>
+                </div>
             </div>
         </div>
     </div>
@@ -327,7 +350,7 @@
         <div class="canvas-container" id="contenedorCanvas">
             <canvas id="canvasCampo"></canvas>
         </div>
-        <button class="btn btn-gpx" onclick="exportarGPX()">💾 Descargar Archivo .GPX (Plotter/App)</button>
+        <button class="btn btn-gpx" onclick="exportarGPX()">💾 Descargar Archivo .GPX (Orca/Plotter)</button>
         <button class="btn btn-csv" onclick="exportarCSV()">📊 Descargar Archivo .CSV (Ver Coordenadas)</button>
     </div>
 
@@ -351,7 +374,7 @@
 
         function inicializarWaypointCosteroInicial() {
             if (waypointsCosteros.length === 0) {
-                waypointsCosteros.push({ nombre: 'Waypoint 1', lat: '', lon: '', latHem: 'N', lonHem: 'E' });
+                waypointsCosteros.push({ nombre: 'Waypoint 1', latDeg: '', latMin: '', latHem: 'N', lonDeg: '', lonMin: '', lonHem: 'E' });
                 renderizarWaypointsCosteros();
             }
         }
@@ -409,7 +432,7 @@
         }
 
         function agregarWaypointCostero() {
-            waypointsCosteros.push({ nombre: `Waypoint ${waypointsCosteros.length + 1}`, lat: '', lon: '', latHem: 'N', lonHem: 'E' });
+            waypointsCosteros.push({ nombre: `Waypoint ${waypointsCosteros.length + 1}`, latDeg: '', latMin: '', latHem: 'N', lonDeg: '', lonMin: '', lonHem: 'E' });
             renderizarWaypointsCosteros();
         }
 
@@ -437,21 +460,50 @@
                         <input type="text" value="${wp.nombre}" placeholder="Nombre baliza" oninput="actualizarDatoWaypoint(${index}, 'nombre', this.value)" style="font-weight:bold; width: 75%;">
                         ${waypointsCosteros.length > 1 ? `<button class="btn btn-danger" style="width:20%; margin:0; padding:6px;" onclick="eliminarWaypointCostero(${index})">Borrar</button>` : ''}
                     </div>
-                    <div style="display: grid; grid-template-columns: 2fr 1fr 2fr 1fr; gap: 4px;">
-                        <input type="number" step="0.00001" value="${wp.lat}" placeholder="Lat" oninput="actualizarDatoWaypoint(${index}, 'lat', this.value)">
-                        <select onchange="actualizarDatoWaypoint(${index}, 'latHem', this.value)">
-                            <option value="N" ${wp.latHem === 'N' ? 'selected' : ''}>N</option>
-                            <option value="S" ${wp.latHem === 'S' ? 'selected' : ''}>S</option>
-                        </select>
-                        <input type="number" step="0.00001" value="${wp.lon}" placeholder="Lon" oninput="actualizarDatoWaypoint(${index}, 'lon', this.value)">
-                        <select onchange="actualizarDatoWaypoint(${index}, 'lonHem', this.value)">
-                            <option value="E" ${wp.lonHem === 'E' ? 'selected' : ''}>E</option>
-                            <option value="W" ${wp.lonHem === 'W' ? 'selected' : ''}>W</option>
-                        </select>
+                    <div style="margin-bottom:4px;"><label style="font-size:0.7rem; color:var(--text-gray);">Latitud (º, ' .000):</label>
+                        <div class="dm-grid">
+                            <input type="number" value="${wp.latDeg}" placeholder="º" oninput="actualizarDatoWaypoint(${index}, 'latDeg', this.value)">
+                            <input type="number" step="0.001" value="${wp.latMin}" placeholder="'" oninput="actualizarDatoWaypoint(${index}, 'latMin', this.value)">
+                            <select onchange="actualizarDatoWaypoint(${index}, 'latHem', this.value)">
+                                <option value="N" ${wp.latHem === 'N' ? 'selected' : ''}>N</option>
+                                <option value="S" ${wp.latHem === 'S' ? 'selected' : ''}>S</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div><label style="font-size:0.7rem; color:var(--text-gray);">Longitud (º, ' .000):</label>
+                        <div class="dm-grid">
+                            <input type="number" value="${wp.lonDeg}" placeholder="º" oninput="actualizarDatoWaypoint(${index}, 'lonDeg', this.value)">
+                            <input type="number" step="0.001" value="${wp.lonMin}" placeholder="'" oninput="actualizarDatoWaypoint(${index}, 'lonMin', this.value)">
+                            <select onchange="actualizarDatoWaypoint(${index}, 'lonHem', this.value)">
+                                <option value="E" ${wp.lonHem === 'E' ? 'selected' : ''}>E</option>
+                                <option value="W" ${wp.lonHem === 'W' ? 'selected' : ''}>W</option>
+                            </select>
+                        </div>
                     </div>
                 `;
                 container.appendChild(div);
             });
+        }
+
+        function dmToDecimal(deg, min, hem) {
+            let d = parseFloat(deg) || 0;
+            let m = parseFloat(min) || 0;
+            let val = Math.abs(d) + (m / 60);
+            if (hem === 'S' || hem === 'W') val = -val;
+            return val;
+        }
+
+        function decimalToDM(decimal, isLat = true) {
+            let absVal = Math.abs(decimal);
+            let d = Math.floor(absVal);
+            let m = ((absVal - d) * 60).toFixed(3);
+            let hem = '';
+            if (isLat) {
+                hem = decimal >= 0 ? 'N' : 'S';
+            } else {
+                hem = decimal >= 0 ? 'E' : 'W';
+            }
+            return { deg: d, min: m, hem: hem };
         }
 
         function marcarGPS(tipo) {
@@ -465,17 +517,19 @@
                     let lon = pos.coords.longitude;
                     puntosGPS[tipo] = { lat: lat, lon: lon };
                     
-                    let latLetra = lat >= 0 ? 'N' : 'S';
-                    let lonLetra = lon >= 0 ? 'E' : 'W';
-                    
+                    let latDM = decimalToDM(lat, true);
+                    let lonDM = decimalToDM(lon, false);
+
                     document.getElementById(tipo + 'Info').innerHTML = 
-                        `Lat: ${Math.abs(lat).toFixed(5)}° ${latLetra}<br>Lon: ${Math.abs(lon).toFixed(5)}° ${lonLetra}`;
+                        `Lat: ${latDM.deg}° ${latDM.min}' ${latDM.hem}<br>Lon: ${lonDM.deg}° ${lonDM.min}' ${lonDM.hem}`;
                     document.getElementById('btnDel' + (tipo === 'comite' ? 'Comite' : 'Pin')).classList.remove('hidden');
 
-                    document.getElementById('manual' + (tipo === 'comite' ? 'Comite' : 'Pin') + 'Lat').value = Math.abs(lat).toFixed(5);
-                    document.getElementById('manual' + (tipo === 'comite' ? 'Comite' : 'Pin') + 'LatHem').value = latLetra;
-                    document.getElementById('manual' + (tipo === 'comite' ? 'Comite' : 'Pin') + 'Lon').value = Math.abs(lon).toFixed(5);
-                    document.getElementById('manual' + (tipo === 'comite' ? 'Comite' : 'Pin') + 'LonHem').value = lonLetra;
+                    document.getElementById(tipo + 'LatDeg').value = latDM.deg;
+                    document.getElementById(tipo + 'LatMin').value = latDM.min;
+                    document.getElementById(tipo + 'LatHem').value = latDM.hem;
+                    document.getElementById(tipo + 'LonDeg').value = lonDM.deg;
+                    document.getElementById(tipo + 'LonMin').value = lonDM.min;
+                    document.getElementById(tipo + 'LonHem').value = lonDM.hem;
 
                     actualizarDibujo();
                 },
@@ -490,22 +544,26 @@
             puntosGPS[tipo] = null;
             document.getElementById(tipo + 'Info').innerText = "Sin registrar";
             document.getElementById('btnDel' + (tipo === 'comite' ? 'Comite' : 'Pin')).classList.add('hidden');
-            document.getElementById('manual' + (tipo === 'comite' ? 'Comite' : 'Pin') + 'Lat').value = '';
-            document.getElementById('manual' + (tipo === 'comite' ? 'Comite' : 'Pin') + 'Lon').value = '';
+            document.getElementById(tipo + 'LatDeg').value = '';
+            document.getElementById(tipo + 'LatMin').value = '';
+            document.getElementById(tipo + 'LonDeg').value = '';
+            document.getElementById(tipo + 'LonMin').value = '';
             actualizarDibujo();
         }
 
         function actualizarManual(tipo) {
-            let latVal = parseFloat(document.getElementById('manual' + (tipo === 'comite' ? 'Comite' : 'Pin') + 'Lat').value);
-            let latHem = document.getElementById('manual' + (tipo === 'comite' ? 'Comite' : 'Pin') + 'LatHem').value;
-            let lonVal = parseFloat(document.getElementById('manual' + (tipo === 'comite' ? 'Comite' : 'Pin') + 'Lon').value);
-            let lonHem = document.getElementById('manual' + (tipo === 'comite' ? 'Comite' : 'Pin') + 'LonHem').value;
+            let latDeg = document.getElementById(tipo + 'LatDeg').value;
+            let latMin = document.getElementById(tipo + 'LatMin').value;
+            let latHem = document.getElementById(tipo + 'LatHem').value;
+            let lonDeg = document.getElementById(tipo + 'LonDeg').value;
+            let lonMin = document.getElementById(tipo + 'LonMin').value;
+            let lonHem = document.getElementById(tipo + 'LonHem').value;
 
-            if (!isNaN(latVal) && !isNaN(lonVal)) {
-                let finalLat = latHem === 'S' ? -latVal : latVal;
-                let finalLon = lonHem === 'W' ? -lonVal : lonVal;
+            if (latDeg !== '' && lonDeg !== '') {
+                let finalLat = dmToDecimal(latDeg, latMin, latHem);
+                let finalLon = dmToDecimal(lonDeg, lonMin, lonHem);
                 puntosGPS[tipo] = { lat: finalLat, lon: finalLon };
-                document.getElementById(tipo + 'Info').innerHTML = `Lat: ${Math.abs(latVal).toFixed(5)}° ${latHem}<br>Lon: ${Math.abs(lonVal).toFixed(5)}° ${lonHem}`;
+                document.getElementById(tipo + 'Info').innerHTML = `Lat: ${Math.abs(latDeg)}° ${parseFloat(latMin||0).toFixed(3)}' ${latHem}<br>Lon: ${Math.abs(lonDeg)}° ${parseFloat(lonMin||0).toFixed(3)}' ${lonHem}`;
                 document.getElementById('btnDel' + (tipo === 'comite' ? 'Comite' : 'Pin')).classList.remove('hidden');
             } else {
                 puntosGPS[tipo] = null;
@@ -528,6 +586,7 @@
             return { lat: lat2 * 180 / Math.PI, lon: lon2 * 180 / Math.PI };
         }
 
+        // Obtener puntos completos para cálculos internos y CSV
         function obtenerPuntosCalculados() {
             const tipo = document.getElementById('raceType').value;
             let listaPuntos = [];
@@ -553,11 +612,9 @@
                 }
 
                 waypointsCosteros.forEach(wp => {
-                    let latVal = parseFloat(wp.lat);
-                    let lonVal = parseFloat(wp.lon);
-                    if (!isNaN(latVal) && !isNaN(lonVal)) {
-                        if (wp.latHem === 'S') latVal = -latVal;
-                        if (wp.lonHem === 'W') lonVal = -lonVal;
+                    let latVal = dmToDecimal(wp.latDeg, wp.latMin, wp.latHem);
+                    let lonVal = dmToDecimal(wp.lonDeg, wp.lonMin, wp.lonHem);
+                    if (!isNaN(latVal) && !isNaN(lonVal) && (wp.latDeg !== '' || wp.lonDeg !== '')) {
                         listaPuntos.push({ nombre: wp.nombre || 'Waypoint', lat: latVal, lon: lonVal });
                     }
                 });
@@ -620,7 +677,7 @@
 
                 } else if (tipo === 'triangulo' || tipo === 'triangulo_olimpico') {
                     const barlo = calcularCoordenadaDestino(centroLat, centroLon, distancia, ejeViento);
-                    let anguloReach = ejeViento + 120;
+                    let anguloReach = ejeViento - 120; // Baliza 2 a la izquierda (-120º)
                     const reach = calcularCoordenadaDestino(barlo.lat, barlo.lon, distancia, anguloReach);
 
                     listaPuntos.push({ nombre: 'Pin', lat: puntosGPS.pin.lat, lon: puntosGPS.pin.lon });
@@ -702,7 +759,7 @@
             } else if (tipo === 'triangulo' || tipo === 'triangulo_olimpico') {
                 let barloX = centroX;
                 let barloY = h * 0.25;
-                let reachX = centroX - 80;
+                let reachX = centroX - 80; // Vértice a la izquierda para triángulos
                 let reachY = h * 0.50;
 
                 ctx.beginPath();
@@ -756,21 +813,27 @@
                 return;
             }
 
+            // Sustituir primer punto (Pin y Comité) por "Centro Línea"
+            let centroLat = (puntos[0].lat + puntos[1].lat) / 2;
+            let centroLon = (puntos[0].lon + puntos[1].lon) / 2;
+
+            let puntosTrack = [...puntos];
+            puntosTrack.splice(0, 2, { nombre: 'Centro Línea', lat: centroLat, lon: centroLon });
+
             let gpx = `<?xml version="1.0" encoding="UTF-8"?>
 <gpx version="1.1" creator="ILDEMAR IV App" xmlns="http://www.topografix.com/GPX/1/1">
-  <metadata><name>Regata - ${tipo.toUpperCase()}</name></metadata>\n`;
+  <metadata><name>Regata - ${tipo.toUpperCase()}</name></metadata>
+  <trk>
+    <name>Recorrido ${tipo.toUpperCase()}</name>
+    <trkseg>\n`;
 
-            puntos.forEach(p => {
-                let sym = 'Mark';
-                if (p.nombre === 'Comite') sym = 'Boat';
-                else if (p.nombre === 'Pin') sym = 'Buoy';
-                else if (p.nombre.includes('Puerta')) sym = 'Gate';
-                else if (p.nombre === 'Waypoint') sym = 'Waypoint';
-
-                gpx += `  <wpt lat="${p.lat.toFixed(6)}" lon="${p.lon.toFixed(6)}"><name>${p.nombre}</name><sym>${sym}</sym></wpt>\n`;
+            puntosTrack.forEach(p => {
+                gpx += `      <trkpt lat="${p.lat.toFixed(6)}" lon="${p.lon.toFixed(6)}"><name>${p.nombre}</name></trkpt>\n`;
             });
 
-            gpx += `</gpx>`;
+            gpx += `    </trkseg>
+  </trk>
+</gpx>`;
 
             const blob = new Blob([gpx], { type: 'application/gpx+xml' });
             const url = URL.createObjectURL(blob);
@@ -791,8 +854,15 @@
                 return;
             }
 
+            // Insertar "Centro Línea" como tercer punto extra después de Pin y Comité
+            let centroLat = (puntos[0].lat + puntos[1].lat) / 2;
+            let centroLon = (puntos[0].lon + puntos[1].lon) / 2;
+
+            let puntosCsv = [...puntos];
+            puntosCsv.splice(2, 0, { nombre: 'Centro Línea', lat: centroLat, lon: centroLon });
+
             let csv = "Baliza,Latitud,Longitud\n";
-            puntos.forEach(p => {
+            puntosCsv.forEach(p => {
                 csv += `"${p.nombre}",${p.lat.toFixed(6)},${p.lon.toFixed(6)}\n`;
             });
 
