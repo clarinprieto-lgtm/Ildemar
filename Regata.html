@@ -1,3 +1,6 @@
+
+He invertido el orden de los campos de Pin y Comité tanto en los botones de GPS como en los bloques de entrada manual dentro de la sección "2. Línea de salida (Pin y Comité)", manteniendo intacto el resto de la lógica, cálculos y exportaciones.
+Aquí tienes el código completo actualizado:
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -188,44 +191,25 @@
         </select>
     </div>
 
-    <!-- 2. REGISTRO DE SALIDA (COMITÉ Y PIN) -->
+    <!-- 2. REGISTRO DE SALIDA (PIN Y COMITÉ) -->
     <div class="card" id="seccionSalida">
-        <div class="card-title">2. Línea de salida (Comité y Pin)</div>
+        <div class="card-title">2. Línea de salida (Pin y Comité)</div>
         
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
-            <div>
-                <button class="btn btn-blue" onclick="marcarGPS('comite')">📍 GPS Comité</button>
-                <div id="comiteInfo" class="coords-info">Sin registrar</div>
-                <button id="btnDelComite" class="btn btn-danger hidden" onclick="eliminarGPS('comite')">Eliminar</button>
-            </div>
             <div>
                 <button class="btn btn-blue" onclick="marcarGPS('pin')">📍 GPS Pin</button>
                 <div id="pinInfo" class="coords-info">Sin registrar</div>
                 <button id="btnDelPin" class="btn btn-danger hidden" onclick="eliminarGPS('pin')">Eliminar</button>
             </div>
+            <div>
+                <button class="btn btn-blue" onclick="marcarGPS('comite')">📍 GPS Comité</button>
+                <div id="comiteInfo" class="coords-info">Sin registrar</div>
+                <button id="btnDelComite" class="btn btn-danger hidden" onclick="eliminarGPS('comite')">Eliminar</button>
+            </div>
         </div>
 
         <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-gray); text-align: center; margin: 6px 0;">O introducir a mano (Grados y Minutos .000):</div>
         
-        <!-- Entrada manual Comité -->
-        <div class="sub-config">
-            <label style="font-weight:700; color:var(--blue-dark);">Comité Manual:</label>
-            <div style="margin-bottom: 4px;"><label style="font-size:0.7rem; color:var(--text-gray);">Latitud (º, ' .000):</label>
-                <div class="dm-grid">
-                    <input type="number" id="comiteLatDeg" placeholder="º" oninput="actualizarManual('comite')">
-                    <input type="number" id="comiteLatMin" step="0.001" placeholder="'" oninput="actualizarManual('comite')">
-                    <select id="comiteLatHem" onchange="actualizarManual('comite')"><option value="N">N</option><option value="S">S</option></select>
-                </div>
-            </div>
-            <div><label style="font-size:0.7rem; color:var(--text-gray);">Longitud (º, ' .000):</label>
-                <div class="dm-grid">
-                    <input type="number" id="comiteLonDeg" placeholder="º" oninput="actualizarManual('comite')">
-                    <input type="number" id="comiteLonMin" step="0.001" placeholder="'" oninput="actualizarManual('comite')">
-                    <select id="comiteLonHem" onchange="actualizarManual('comite')"><option value="E">E</option><option value="W">W</option></select>
-                </div>
-            </div>
-        </div>
-
         <!-- Entrada manual Pin -->
         <div class="sub-config">
             <label style="font-weight:700; color:var(--blue-dark);">Pin Manual:</label>
@@ -241,6 +225,25 @@
                     <input type="number" id="pinLonDeg" placeholder="º" oninput="actualizarManual('pin')">
                     <input type="number" id="pinLonMin" step="0.001" placeholder="'" oninput="actualizarManual('pin')">
                     <select id="pinLonHem" onchange="actualizarManual('pin')"><option value="E">E</option><option value="W">W</option></select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Entrada manual Comité -->
+        <div class="sub-config">
+            <label style="font-weight:700; color:var(--blue-dark);">Comité Manual:</label>
+            <div style="margin-bottom: 4px;"><label style="font-size:0.7rem; color:var(--text-gray);">Latitud (º, ' .000):</label>
+                <div class="dm-grid">
+                    <input type="number" id="comiteLatDeg" placeholder="º" oninput="actualizarManual('comite')">
+                    <input type="number" id="comiteLatMin" step="0.001" placeholder="'" oninput="actualizarManual('comite')">
+                    <select id="comiteLatHem" onchange="actualizarManual('comite')"><option value="N">N</option><option value="S">S</option></select>
+                </div>
+            </div>
+            <div><label style="font-size:0.7rem; color:var(--text-gray);">Longitud (º, ' .000):</label>
+                <div class="dm-grid">
+                    <input type="number" id="comiteLonDeg" placeholder="º" oninput="actualizarManual('comite')">
+                    <input type="number" id="comiteLonMin" step="0.001" placeholder="'" oninput="actualizarManual('comite')">
+                    <select id="comiteLonHem" onchange="actualizarManual('comite')"><option value="E">E</option><option value="W">W</option></select>
                 </div>
             </div>
         </div>
@@ -586,7 +589,6 @@
             return { lat: lat2 * 180 / Math.PI, lon: lon2 * 180 / Math.PI };
         }
 
-        // Obtener puntos completos para cálculos internos (orden secuencial de la regata)
         function obtenerPuntosCalculados() {
             const tipo = document.getElementById('raceType').value;
             let listaPuntos = [];
@@ -857,14 +859,12 @@
                 return;
             }
 
-            // 1. Insertar "CENTRO LINEA" como tercer punto (extra)
             let centroLat = (puntos[0].lat + puntos[1].lat) / 2;
             let centroLon = (puntos[0].lon + puntos[1].lon) / 2;
 
             let puntosCsv = [...puntos];
             puntosCsv.splice(2, 0, { nombre: 'CENTRO LINEA', lat: centroLat, lon: centroLon });
 
-            // 2. Filtrar para que cada waypoint único aparezca una sola vez (manteniendo el primer orden en que aparecen)
             let vistos = new Set();
             let puntosUnicos = puntosCsv.filter(p => {
                 if (vistos.has(p.nombre)) {
@@ -891,3 +891,4 @@
     </script>
 </body>
 </html>
+
